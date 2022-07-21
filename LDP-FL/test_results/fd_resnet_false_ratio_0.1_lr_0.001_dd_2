@@ -1,0 +1,219 @@
+model resnet18, client 100, ratio 0.1, is_iid False, epoch 5, lr 0.001, batch 50, dd 2
+
+---------- Data Distribution -------------
+Dist of Total Examples is tensor([5923, 6742, 5958, 6131, 5842, 5421, 5918, 6265, 5851, 5949])
+Client 0 - Dist of Examples: tensor([  0, 300, 300])
+Client 1 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 300,   0,   0,   0, 300])
+Client 2 - Dist of Examples: tensor([  0,   0,   0,   0, 300,   0,   0, 300])
+Client 3 - Dist of Examples: tensor([  0, 300,   0,   0,   0,   0,   0, 300])
+Client 4 - Dist of Examples: tensor([  0,   0,   0,   0, 300,   0,   0,   0,   0, 300])
+Client 5 - Dist of Examples: tensor([  0,   0,   0,   0, 296,   4,   0,   0, 300])
+Client 6 - Dist of Examples: tensor([300,   0,   0, 300])
+Client 7 - Dist of Examples: tensor([  0,   0, 300,   0,   0, 300])
+Client 8 - Dist of Examples: tensor([  0,  65, 235,   0,   0,   0, 300])
+Client 9 - Dist of Examples: tensor([  0, 300,   0,   0,   0, 300])
+Client 10 - Dist of Examples: tensor([  0,   0,   0,   0, 300,   0,   0,   0, 300])
+Client 11 - Dist of Examples: tensor([  0,   0,   0, 300, 300])
+Client 12 - Dist of Examples: tensor([  0,   0,   0, 300, 300])
+Client 13 - Dist of Examples: tensor([  0, 300,   0,   0,   0,   0,   0,   0,   0, 300])
+Client 14 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0,   0,   0, 300, 300])
+Client 15 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 300,   0,   0,   0, 300])
+Client 16 - Dist of Examples: tensor([300,   0, 300])
+Client 17 - Dist of Examples: tensor([300,   0,   0,   0,   0,   0,   0,   0,   0, 300])
+Client 18 - Dist of Examples: tensor([  0, 300,   0,   0, 300])
+Client 19 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0,   0, 300, 300])
+Client 20 - Dist of Examples: tensor([  0,   0,   0, 300,   0,   0,   0,   0,   0, 300])
+Client 21 - Dist of Examples: tensor([  0, 300,   0,   0,   0,   0,   0, 200, 100])
+Client 22 - Dist of Examples: tensor([  0,   0, 600])
+Client 23 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0,   0,   0,   0, 600])
+Client 24 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0, 600])
+Client 25 - Dist of Examples: tensor([300,   0,   0,   0, 300])
+Client 26 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 317, 283])
+Client 27 - Dist of Examples: tensor([300,   0,   0,   0, 300])
+Client 28 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0, 300,   0,   0, 300])
+Client 29 - Dist of Examples: tensor([  0,   0, 300,   0,   0,   0,   0, 300])
+Client 30 - Dist of Examples: tensor([  0, 300,   0,   0,   0, 300])
+Client 31 - Dist of Examples: tensor([  0,   0, 300,   0,   0, 300])
+Client 32 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0, 300,   0, 300])
+Client 33 - Dist of Examples: tensor([300,   0,   0, 300])
+Client 34 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0,   0, 300, 300])
+Client 35 - Dist of Examples: tensor([  0,   0,   0, 300,   0,   0,   0, 300])
+Client 36 - Dist of Examples: tensor([  0,   0,   0,   0, 300,   0,   0,   0, 300])
+Client 37 - Dist of Examples: tensor([  0,   0, 300,   0,   0, 300])
+Client 38 - Dist of Examples: tensor([  0, 300,   0,   0, 300])
+Client 39 - Dist of Examples: tensor([  0,   0,   0, 300,   0,   0,   0,   0,   0, 300])
+Client 40 - Dist of Examples: tensor([  0,   0,   0, 154, 146,   0,   0,   0,   0, 300])
+Client 41 - Dist of Examples: tensor([  0,   0, 300,   0,   0,   0,   0,   0,   0, 300])
+Client 42 - Dist of Examples: tensor([  0, 300,   0,   0, 300])
+Client 43 - Dist of Examples: tensor([  0,   0, 600])
+Client 44 - Dist of Examples: tensor([  0,   0,   0,   0, 300,   0, 300])
+Client 45 - Dist of Examples: tensor([  0, 300,   0,   0,   0,   0, 300])
+Client 46 - Dist of Examples: tensor([300,   0,   0,   0,   0,   0,   0, 300])
+Client 47 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 300,   0, 300])
+Client 48 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 300,   0, 300])
+Client 49 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 300, 300])
+Client 50 - Dist of Examples: tensor([  0, 300,   0,   0,   0,   0, 300])
+Client 51 - Dist of Examples: tensor([  0, 300,   0,   0,   0,   0, 300])
+Client 52 - Dist of Examples: tensor([600])
+Client 53 - Dist of Examples: tensor([300,   0,   0,   0,   0,   0,   0, 300])
+Client 54 - Dist of Examples: tensor([  0,   0,   0,   0, 300,   0, 300])
+Client 55 - Dist of Examples: tensor([300,   0,   0,   0,   0,   0,   0, 300])
+Client 56 - Dist of Examples: tensor([  0, 600])
+Client 57 - Dist of Examples: tensor([300,   0,   0,   0,   0,   0,   0,   0,   0, 300])
+Client 58 - Dist of Examples: tensor([  0, 300,   0,   0,   0,   0,   0,   0, 300])
+Client 59 - Dist of Examples: tensor([  0,   0,  23, 277,   0,   0, 300])
+Client 60 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0,   0, 300, 300])
+Client 61 - Dist of Examples: tensor([  0, 300,   0, 300])
+Client 62 - Dist of Examples: tensor([  0,   0,   0,   0, 300,   0,   0,   0, 300])
+Client 63 - Dist of Examples: tensor([  0,   0,   0, 600])
+Client 64 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0, 300,   0, 300])
+Client 65 - Dist of Examples: tensor([300,   0, 300])
+Client 66 - Dist of Examples: tensor([223,  77,   0,   0,   0,   0,   0,   0, 300])
+Client 67 - Dist of Examples: tensor([  0,   0, 300, 300])
+Client 68 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 300,   0,   0,   0, 300])
+Client 69 - Dist of Examples: tensor([300,   0,   0,   0, 300])
+Client 70 - Dist of Examples: tensor([300, 300])
+Client 71 - Dist of Examples: tensor([  0,   0, 300,   0, 300])
+Client 72 - Dist of Examples: tensor([  0,   0,   0, 300,   0,   0,   0, 300])
+Client 73 - Dist of Examples: tensor([  0,   0,   0, 300,   0,   0,   0,   0,   0, 300])
+Client 74 - Dist of Examples: tensor([  0,   0, 300,   0,   0, 300])
+Client 75 - Dist of Examples: tensor([300,   0,   0,   0,   0,   0,   0, 300])
+Client 76 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0,   0, 300,   0, 300])
+Client 77 - Dist of Examples: tensor([  0, 300,   0,   0,   0,   0, 300])
+Client 78 - Dist of Examples: tensor([  0, 300,   0,   0, 300])
+Client 79 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 300,   0, 300])
+Client 80 - Dist of Examples: tensor([  0,   0, 300, 300])
+Client 81 - Dist of Examples: tensor([  0,   0,   0, 300,   0,   0,   0, 300])
+Client 82 - Dist of Examples: tensor([300, 300])
+Client 83 - Dist of Examples: tensor([  0,   0, 300,   0,   0,   0,   0,   0, 300])
+Client 84 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 300,   0,   0,  51, 249])
+Client 85 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 300,   0,   0, 300])
+Client 86 - Dist of Examples: tensor([  0,   0,   0,   0,   0, 300,   0, 300])
+Client 87 - Dist of Examples: tensor([  0,   0, 300,   0,   0,   0, 300])
+Client 88 - Dist of Examples: tensor([  0, 300,   0,   0,   0,   0,   0,   0, 300])
+Client 89 - Dist of Examples: tensor([  0,   0,   0, 300,   0,   0, 300])
+Client 90 - Dist of Examples: tensor([  0,   0, 300,   0,   0, 300])
+Client 91 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0,   0,   0, 300, 300])
+Client 92 - Dist of Examples: tensor([300,   0,   0, 300])
+Client 93 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0,   0,   0, 300, 300])
+Client 94 - Dist of Examples: tensor([  0,   0,   0, 300,   0,   0, 300])
+Client 95 - Dist of Examples: tensor([  0,   0,   0, 300,   0,   0,   0, 300])
+Client 96 - Dist of Examples: tensor([  0,   0,   0,   0, 300,   0,   0, 300])
+Client 97 - Dist of Examples: tensor([  0, 300,   0,   0,   0,   0, 300])
+Client 98 - Dist of Examples: tensor([300,   0,   0,   0,   0,   0,   0,   0, 300])
+Client 99 - Dist of Examples: tensor([  0,   0,   0,   0,   0,   0, 235,  65, 300])
+--------------- End ----------------------
+
+Round 0: Accuracy 37.93%
+Round 1: Accuracy 32.50%
+Round 2: Accuracy 23.97%
+Round 3: Accuracy 69.57%
+Round 4: Accuracy 36.94%
+Round 5: Accuracy 63.70%
+Round 6: Accuracy 57.44%
+Round 7: Accuracy 71.54%
+Round 8: Accuracy 70.87%
+Round 9: Accuracy 76.78%
+Round 10: Accuracy 65.84%
+Round 11: Accuracy 75.69%
+Round 12: Accuracy 82.59%
+Round 13: Accuracy 80.22%
+Round 14: Accuracy 77.31%
+Round 15: Accuracy 73.19%
+Round 16: Accuracy 77.04%
+Round 17: Accuracy 82.94%
+Round 18: Accuracy 88.55%
+Round 19: Accuracy 69.92%
+Round 20: Accuracy 90.79%
+Round 21: Accuracy 61.37%
+Round 22: Accuracy 81.15%
+Round 23: Accuracy 86.95%
+Round 24: Accuracy 68.43%
+Round 25: Accuracy 84.00%
+Round 26: Accuracy 88.69%
+Round 27: Accuracy 84.67%
+Round 28: Accuracy 73.86%
+Round 29: Accuracy 85.02%
+Round 30: Accuracy 90.42%
+Round 31: Accuracy 87.12%
+Round 32: Accuracy 84.78%
+Round 33: Accuracy 81.73%
+Round 34: Accuracy 74.63%
+Round 35: Accuracy 84.24%
+Round 36: Accuracy 83.86%
+Round 37: Accuracy 86.59%
+Round 38: Accuracy 86.50%
+Round 39: Accuracy 93.46%
+Round 40: Accuracy 89.50%
+Round 41: Accuracy 93.10%
+Round 42: Accuracy 93.79%
+Round 43: Accuracy 91.42%
+Round 44: Accuracy 85.61%
+Round 45: Accuracy 91.77%
+Round 46: Accuracy 82.91%
+Round 47: Accuracy 81.34%
+Round 48: Accuracy 87.41%
+Round 49: Accuracy 91.12%
+Round 50: Accuracy 82.28%
+Round 51: Accuracy 76.97%
+Round 52: Accuracy 89.81%
+Round 53: Accuracy 88.01%
+Round 54: Accuracy 86.28%
+Round 55: Accuracy 93.24%
+Round 56: Accuracy 92.48%
+Round 57: Accuracy 93.65%
+Round 58: Accuracy 87.98%
+Round 59: Accuracy 86.43%
+Round 60: Accuracy 90.01%
+Round 61: Accuracy 88.48%
+Round 62: Accuracy 93.95%
+Round 63: Accuracy 94.98%
+Round 64: Accuracy 91.77%
+Round 65: Accuracy 91.51%
+Round 66: Accuracy 91.57%
+Round 67: Accuracy 92.83%
+Round 68: Accuracy 87.16%
+Round 69: Accuracy 87.74%
+Round 70: Accuracy 93.86%
+Round 71: Accuracy 95.12%
+Round 72: Accuracy 94.33%
+Round 73: Accuracy 94.59%
+Round 74: Accuracy 94.70%
+Round 75: Accuracy 90.32%
+Round 76: Accuracy 94.01%
+Round 77: Accuracy 94.15%
+Round 78: Accuracy 94.30%
+Round 79: Accuracy 93.50%
+Round 80: Accuracy 92.69%
+Round 81: Accuracy 94.20%
+Round 82: Accuracy 93.82%
+Round 83: Accuracy 94.05%
+Round 84: Accuracy 93.33%
+Round 85: Accuracy 94.17%
+Round 86: Accuracy 94.27%
+Round 87: Accuracy 93.45%
+Round 88: Accuracy 93.64%
+Round 89: Accuracy 92.61%
+Round 90: Accuracy 89.49%
+Round 91: Accuracy 93.16%
+Round 92: Accuracy 94.13%
+Round 93: Accuracy 94.18%
+Round 94: Accuracy 94.32%
+Round 95: Accuracy 94.97%
+Round 96: Accuracy 94.37%
+Round 97: Accuracy 94.00%
+Round 98: Accuracy 93.61%
+Round 99: Accuracy 95.11%
+Round 100: Accuracy 91.68%
+Round 101: Accuracy 92.79%
+Round 102: Accuracy 93.10%
+Round 103: Accuracy 93.55%
+Round 104: Accuracy 93.73%
+Round 105: Accuracy 93.64%
+Round 106: Accuracy 93.62%
+Round 107: Accuracy 93.60%
+Round 108: Accuracy 90.58%
+Round 109: Accuracy 92.35%
+Round 110: Accuracy 93.42%
+Round 111: Accuracy 94.42%
+Round 112: Accuracy 93.54%

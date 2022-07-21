@@ -1,0 +1,83 @@
+model resnet18, bath_size 150
+
+------------- Model Structure -------------
+0: torch.Size([64, 1, 7, 7])
+1: torch.Size([64])
+2: torch.Size([64])
+3: torch.Size([64, 64, 3, 3])
+4: torch.Size([64])
+5: torch.Size([64])
+6: torch.Size([64, 64, 3, 3])
+7: torch.Size([64])
+8: torch.Size([64])
+9: torch.Size([64, 64, 3, 3])
+10: torch.Size([64])
+11: torch.Size([64])
+12: torch.Size([64, 64, 3, 3])
+13: torch.Size([64])
+14: torch.Size([64])
+15: torch.Size([128, 64, 3, 3])
+16: torch.Size([128])
+17: torch.Size([128])
+18: torch.Size([128, 128, 3, 3])
+19: torch.Size([128])
+20: torch.Size([128])
+21: torch.Size([128, 64, 1, 1])
+22: torch.Size([128])
+23: torch.Size([128])
+24: torch.Size([128, 128, 3, 3])
+25: torch.Size([128])
+26: torch.Size([128])
+27: torch.Size([128, 128, 3, 3])
+28: torch.Size([128])
+29: torch.Size([128])
+30: torch.Size([256, 128, 3, 3])
+31: torch.Size([256])
+32: torch.Size([256])
+33: torch.Size([256, 256, 3, 3])
+34: torch.Size([256])
+35: torch.Size([256])
+36: torch.Size([256, 128, 1, 1])
+37: torch.Size([256])
+38: torch.Size([256])
+39: torch.Size([256, 256, 3, 3])
+40: torch.Size([256])
+41: torch.Size([256])
+42: torch.Size([256, 256, 3, 3])
+43: torch.Size([256])
+44: torch.Size([256])
+45: torch.Size([512, 256, 3, 3])
+46: torch.Size([512])
+47: torch.Size([512])
+48: torch.Size([512, 512, 3, 3])
+49: torch.Size([512])
+50: torch.Size([512])
+51: torch.Size([512, 256, 1, 1])
+52: torch.Size([512])
+53: torch.Size([512])
+54: torch.Size([512, 512, 3, 3])
+55: torch.Size([512])
+56: torch.Size([512])
+57: torch.Size([512, 512, 3, 3])
+58: torch.Size([512])
+59: torch.Size([512])
+60: torch.Size([1000, 512])
+61: torch.Size([1000])
+------------------- END -------------------
+
+Epoch 0: Accuracy 97.01%
+Epoch 1: Accuracy 97.88%
+Epoch 2: Accuracy 98.11%
+Epoch 3: Accuracy 98.37%
+Epoch 4: Accuracy 98.38%
+Epoch 5: Accuracy 98.49%
+Epoch 6: Accuracy 98.55%
+Epoch 7: Accuracy 98.55%
+Epoch 8: Accuracy 98.59%
+Epoch 9: Accuracy 98.60%
+Epoch 10: Accuracy 98.63%
+Epoch 11: Accuracy 98.67%
+Epoch 12: Accuracy 98.65%
+Epoch 13: Accuracy 98.72%
+Epoch 14: Accuracy 98.65%
+Epoch 15: Accuracy 98.69%

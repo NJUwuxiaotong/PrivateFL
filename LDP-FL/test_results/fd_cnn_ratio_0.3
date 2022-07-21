@@ -1,0 +1,266 @@
+model cnn, client 100, ratio 0.3, is_iid true, epoch 5, lr 0.005, batch 50
+
+---------- Data Distribution -------------
+Dist of Total Examples is tensor([5923, 6742, 5958, 6131, 5842, 5421, 5918, 6265, 5851, 5949])
+Client 0 - Dist of Examples: tensor([65, 58, 61, 66, 62, 53, 45, 69, 70, 51])
+Client 1 - Dist of Examples: tensor([62, 60, 53, 69, 62, 59, 54, 58, 51, 72])
+Client 2 - Dist of Examples: tensor([49, 69, 62, 73, 63, 50, 62, 62, 62, 48])
+Client 3 - Dist of Examples: tensor([62, 76, 64, 52, 60, 53, 57, 63, 49, 64])
+Client 4 - Dist of Examples: tensor([41, 61, 60, 63, 69, 68, 76, 54, 49, 59])
+Client 5 - Dist of Examples: tensor([61, 73, 47, 69, 61, 50, 60, 55, 67, 57])
+Client 6 - Dist of Examples: tensor([66, 60, 62, 59, 52, 69, 54, 69, 53, 56])
+Client 7 - Dist of Examples: tensor([58, 77, 60, 46, 51, 64, 52, 67, 66, 59])
+Client 8 - Dist of Examples: tensor([46, 57, 63, 58, 56, 65, 55, 73, 63, 64])
+Client 9 - Dist of Examples: tensor([58, 71, 56, 71, 64, 54, 59, 54, 57, 56])
+Client 10 - Dist of Examples: tensor([56, 68, 62, 55, 58, 56, 50, 68, 56, 71])
+Client 11 - Dist of Examples: tensor([66, 86, 59, 52, 57, 52, 49, 65, 63, 51])
+Client 12 - Dist of Examples: tensor([71, 58, 59, 68, 50, 63, 78, 51, 55, 47])
+Client 13 - Dist of Examples: tensor([48, 57, 68, 80, 61, 49, 59, 53, 71, 54])
+Client 14 - Dist of Examples: tensor([59, 79, 64, 63, 58, 60, 49, 56, 53, 59])
+Client 15 - Dist of Examples: tensor([57, 59, 65, 64, 62, 63, 63, 61, 54, 52])
+Client 16 - Dist of Examples: tensor([68, 62, 49, 64, 59, 50, 62, 58, 64, 64])
+Client 17 - Dist of Examples: tensor([53, 81, 62, 58, 58, 53, 65, 59, 50, 61])
+Client 18 - Dist of Examples: tensor([64, 74, 58, 64, 56, 40, 51, 56, 53, 84])
+Client 19 - Dist of Examples: tensor([45, 63, 59, 61, 68, 51, 56, 70, 58, 69])
+Client 20 - Dist of Examples: tensor([51, 70, 55, 73, 65, 50, 55, 63, 53, 65])
+Client 21 - Dist of Examples: tensor([49, 79, 56, 64, 56, 44, 70, 57, 66, 59])
+Client 22 - Dist of Examples: tensor([64, 73, 60, 56, 47, 50, 55, 62, 64, 69])
+Client 23 - Dist of Examples: tensor([62, 63, 56, 61, 56, 67, 64, 55, 47, 69])
+Client 24 - Dist of Examples: tensor([46, 74, 50, 55, 65, 49, 65, 73, 69, 54])
+Client 25 - Dist of Examples: tensor([66, 70, 63, 77, 62, 41, 48, 56, 58, 59])
+Client 26 - Dist of Examples: tensor([62, 65, 64, 65, 50, 49, 58, 62, 67, 58])
+Client 27 - Dist of Examples: tensor([54, 70, 64, 63, 65, 46, 53, 80, 46, 59])
+Client 28 - Dist of Examples: tensor([53, 64, 60, 62, 55, 45, 67, 79, 57, 58])
+Client 29 - Dist of Examples: tensor([56, 70, 65, 52, 56, 62, 64, 68, 58, 49])
+Client 30 - Dist of Examples: tensor([62, 63, 58, 70, 69, 49, 71, 48, 47, 63])
+Client 31 - Dist of Examples: tensor([60, 64, 71, 69, 57, 48, 55, 69, 52, 55])
+Client 32 - Dist of Examples: tensor([64, 68, 62, 59, 65, 42, 56, 70, 53, 61])
+Client 33 - Dist of Examples: tensor([63, 73, 64, 50, 56, 48, 70, 52, 59, 65])
+Client 34 - Dist of Examples: tensor([54, 62, 53, 73, 45, 78, 51, 64, 66, 54])
+Client 35 - Dist of Examples: tensor([53, 69, 61, 57, 43, 58, 67, 56, 64, 72])
+Client 36 - Dist of Examples: tensor([63, 77, 50, 60, 64, 49, 61, 58, 57, 61])
+Client 37 - Dist of Examples: tensor([56, 54, 63, 66, 59, 40, 61, 78, 59, 64])
+Client 38 - Dist of Examples: tensor([65, 67, 62, 50, 61, 64, 67, 59, 47, 58])
+Client 39 - Dist of Examples: tensor([58, 72, 68, 51, 64, 54, 38, 63, 74, 58])
+Client 40 - Dist of Examples: tensor([59, 67, 64, 54, 68, 51, 61, 60, 56, 60])
+Client 41 - Dist of Examples: tensor([59, 67, 58, 53, 54, 58, 59, 71, 54, 67])
+Client 42 - Dist of Examples: tensor([56, 77, 43, 51, 58, 49, 68, 70, 57, 71])
+Client 43 - Dist of Examples: tensor([63, 71, 62, 68, 56, 55, 62, 61, 48, 54])
+Client 44 - Dist of Examples: tensor([56, 50, 64, 55, 48, 57, 67, 80, 56, 67])
+Client 45 - Dist of Examples: tensor([62, 61, 56, 56, 66, 42, 68, 58, 70, 61])
+Client 46 - Dist of Examples: tensor([71, 58, 43, 64, 58, 50, 51, 73, 70, 62])
+Client 47 - Dist of Examples: tensor([63, 71, 55, 66, 50, 69, 41, 62, 58, 65])
+Client 48 - Dist of Examples: tensor([61, 73, 47, 63, 55, 60, 69, 50, 67, 55])
+Client 49 - Dist of Examples: tensor([60, 76, 73, 50, 62, 54, 51, 70, 48, 56])
+Client 50 - Dist of Examples: tensor([65, 65, 65, 52, 66, 56, 61, 59, 47, 64])
+Client 51 - Dist of Examples: tensor([70, 70, 53, 44, 43, 72, 67, 70, 58, 53])
+Client 52 - Dist of Examples: tensor([72, 60, 50, 52, 53, 54, 74, 68, 71, 46])
+Client 53 - Dist of Examples: tensor([51, 54, 52, 64, 57, 70, 63, 62, 61, 66])
+Client 54 - Dist of Examples: tensor([50, 77, 58, 49, 56, 58, 66, 61, 63, 62])
+Client 55 - Dist of Examples: tensor([72, 76, 69, 63, 55, 42, 59, 54, 57, 53])
+Client 56 - Dist of Examples: tensor([57, 84, 58, 68, 52, 57, 51, 62, 53, 58])
+Client 57 - Dist of Examples: tensor([65, 52, 53, 60, 57, 64, 61, 63, 59, 66])
+Client 58 - Dist of Examples: tensor([49, 69, 51, 70, 59, 50, 73, 68, 55, 56])
+Client 59 - Dist of Examples: tensor([60, 64, 55, 56, 51, 50, 57, 66, 66, 75])
+Client 60 - Dist of Examples: tensor([70, 67, 67, 54, 49, 48, 63, 69, 47, 66])
+Client 61 - Dist of Examples: tensor([54, 63, 68, 55, 54, 56, 53, 69, 63, 65])
+Client 62 - Dist of Examples: tensor([44, 61, 56, 68, 64, 53, 64, 69, 59, 62])
+Client 63 - Dist of Examples: tensor([66, 71, 60, 55, 56, 59, 69, 58, 60, 46])
+Client 64 - Dist of Examples: tensor([57, 63, 68, 62, 63, 44, 55, 60, 63, 65])
+Client 65 - Dist of Examples: tensor([55, 61, 57, 72, 60, 67, 55, 52, 59, 62])
+Client 66 - Dist of Examples: tensor([56, 74, 61, 53, 69, 50, 62, 62, 55, 58])
+Client 67 - Dist of Examples: tensor([70, 85, 60, 68, 49, 46, 54, 53, 61, 54])
+Client 68 - Dist of Examples: tensor([63, 77, 69, 66, 50, 51, 51, 61, 60, 52])
+Client 69 - Dist of Examples: tensor([50, 81, 49, 61, 49, 67, 51, 65, 57, 70])
+Client 70 - Dist of Examples: tensor([56, 66, 62, 66, 52, 62, 61, 61, 56, 58])
+Client 71 - Dist of Examples: tensor([61, 73, 64, 69, 66, 50, 61, 51, 59, 46])
+Client 72 - Dist of Examples: tensor([53, 70, 50, 71, 59, 68, 52, 68, 56, 53])
+Client 73 - Dist of Examples: tensor([56, 61, 57, 56, 50, 60, 76, 67, 52, 65])
+Client 74 - Dist of Examples: tensor([71, 54, 63, 63, 64, 50, 54, 73, 57, 51])
+Client 75 - Dist of Examples: tensor([69, 69, 49, 62, 69, 53, 48, 52, 62, 67])
+Client 76 - Dist of Examples: tensor([64, 62, 59, 56, 64, 53, 64, 65, 55, 58])
+Client 77 - Dist of Examples: tensor([59, 70, 46, 65, 72, 55, 48, 69, 64, 52])
+Client 78 - Dist of Examples: tensor([41, 77, 71, 62, 67, 64, 52, 55, 60, 51])
+Client 79 - Dist of Examples: tensor([64, 54, 55, 57, 66, 69, 70, 50, 49, 66])
+Client 80 - Dist of Examples: tensor([56, 66, 56, 73, 64, 51, 63, 53, 49, 69])
+Client 81 - Dist of Examples: tensor([59, 63, 59, 67, 57, 47, 65, 58, 58, 67])
+Client 82 - Dist of Examples: tensor([68, 68, 58, 60, 56, 60, 62, 57, 56, 55])
+Client 83 - Dist of Examples: tensor([70, 76, 70, 62, 56, 54, 63, 48, 52, 49])
+Client 84 - Dist of Examples: tensor([47, 62, 69, 64, 67, 47, 61, 66, 60, 57])
+Client 85 - Dist of Examples: tensor([64, 66, 66, 75, 72, 50, 43, 61, 48, 55])
+Client 86 - Dist of Examples: tensor([54, 55, 75, 66, 69, 52, 49, 62, 57, 61])
+Client 87 - Dist of Examples: tensor([55, 53, 60, 65, 51, 56, 56, 71, 77, 56])
+Client 88 - Dist of Examples: tensor([58, 65, 57, 68, 61, 39, 56, 58, 73, 65])
+Client 89 - Dist of Examples: tensor([57, 61, 53, 59, 59, 49, 66, 59, 75, 62])
+Client 90 - Dist of Examples: tensor([69, 73, 54, 57, 53, 47, 62, 76, 53, 56])
+Client 91 - Dist of Examples: tensor([60, 76, 65, 54, 56, 50, 48, 74, 64, 53])
+Client 92 - Dist of Examples: tensor([62, 72, 67, 54, 50, 52, 65, 64, 66, 48])
+Client 93 - Dist of Examples: tensor([62, 64, 62, 64, 61, 50, 78, 55, 59, 45])
+Client 94 - Dist of Examples: tensor([54, 68, 71, 66, 64, 59, 54, 59, 50, 55])
+Client 95 - Dist of Examples: tensor([58, 66, 60, 63, 61, 49, 52, 71, 61, 59])
+Client 96 - Dist of Examples: tensor([66, 69, 66, 51, 47, 52, 57, 68, 64, 60])
+Client 97 - Dist of Examples: tensor([69, 65, 67, 57, 58, 50, 50, 62, 69, 53])
+Client 98 - Dist of Examples: tensor([68, 71, 53, 59, 51, 49, 64, 70, 59, 56])
+Client 99 - Dist of Examples: tensor([51, 66, 52, 60, 66, 60, 60, 63, 46, 76])
+--------------- End ----------------------
+
+Round 0: Accuracy 81.47%
+Round 1: Accuracy 97.99%
+Round 2: Accuracy 98.24%
+Round 3: Accuracy 98.30%
+Round 4: Accuracy 98.30%
+Round 5: Accuracy 98.65%
+Round 6: Accuracy 98.64%
+Round 7: Accuracy 98.61%
+Round 8: Accuracy 98.78%
+Round 9: Accuracy 98.67%
+Round 10: Accuracy 98.74%
+Round 11: Accuracy 98.83%
+Round 12: Accuracy 98.79%
+Round 13: Accuracy 98.67%
+Round 14: Accuracy 98.88%
+Round 15: Accuracy 98.68%
+Round 16: Accuracy 98.86%
+Round 17: Accuracy 98.85%
+Round 18: Accuracy 98.89%
+Round 19: Accuracy 98.90%
+Round 20: Accuracy 98.81%
+Round 21: Accuracy 98.91%
+Round 22: Accuracy 99.00%
+Round 23: Accuracy 98.99%
+Round 24: Accuracy 99.00%
+Round 25: Accuracy 99.00%
+Round 26: Accuracy 98.95%
+Round 27: Accuracy 98.86%
+Round 28: Accuracy 98.84%
+Round 29: Accuracy 98.90%
+Round 30: Accuracy 98.93%
+Round 31: Accuracy 99.07%
+Round 32: Accuracy 99.00%
+Round 33: Accuracy 99.09%
+Round 34: Accuracy 99.12%
+Round 35: Accuracy 99.09%
+Round 36: Accuracy 98.91%
+Round 37: Accuracy 99.04%
+Round 38: Accuracy 99.02%
+Round 39: Accuracy 99.08%
+Round 40: Accuracy 99.00%
+Round 41: Accuracy 99.05%
+Round 42: Accuracy 99.06%
+Round 43: Accuracy 99.08%
+Round 44: Accuracy 99.08%
+Round 45: Accuracy 99.10%
+Round 46: Accuracy 99.08%
+Round 47: Accuracy 99.07%
+Round 48: Accuracy 99.06%
+Round 49: Accuracy 99.02%
+Round 50: Accuracy 99.07%
+Round 51: Accuracy 99.10%
+Round 52: Accuracy 99.08%
+Round 53: Accuracy 99.05%
+Round 54: Accuracy 99.10%
+Round 55: Accuracy 99.11%
+Round 56: Accuracy 99.10%
+Round 57: Accuracy 99.09%
+Round 58: Accuracy 99.10%
+Round 59: Accuracy 99.12%
+Round 60: Accuracy 99.07%
+Round 61: Accuracy 99.07%
+Round 62: Accuracy 99.06%
+Round 63: Accuracy 99.09%
+Round 64: Accuracy 99.05%
+Round 65: Accuracy 99.07%
+Round 66: Accuracy 99.11%
+Round 67: Accuracy 99.10%
+Round 68: Accuracy 99.08%
+Round 69: Accuracy 99.09%
+Round 70: Accuracy 99.12%
+Round 71: Accuracy 99.09%
+Round 72: Accuracy 99.11%
+Round 73: Accuracy 99.09%
+Round 74: Accuracy 99.12%
+Round 75: Accuracy 99.11%
+Round 76: Accuracy 99.08%
+Round 77: Accuracy 99.09%
+Round 78: Accuracy 99.11%
+Round 79: Accuracy 99.07%
+Round 80: Accuracy 99.05%
+Round 81: Accuracy 99.10%
+Round 82: Accuracy 99.05%
+Round 83: Accuracy 99.07%
+Round 84: Accuracy 99.13%
+Round 85: Accuracy 99.10%
+Round 86: Accuracy 99.12%
+Round 87: Accuracy 99.07%
+Round 88: Accuracy 99.11%
+Round 89: Accuracy 99.08%
+Round 90: Accuracy 99.05%
+Round 91: Accuracy 99.11%
+Round 92: Accuracy 99.11%
+Round 93: Accuracy 99.10%
+Round 94: Accuracy 99.10%
+Round 95: Accuracy 99.13%
+Round 96: Accuracy 99.12%
+Round 97: Accuracy 99.10%
+Round 98: Accuracy 99.09%
+Round 99: Accuracy 99.10%
+Round 100: Accuracy 99.12%
+Round 101: Accuracy 99.09%
+Round 102: Accuracy 99.11%
+Round 103: Accuracy 99.11%
+Round 104: Accuracy 99.09%
+Round 105: Accuracy 99.09%
+Round 106: Accuracy 99.11%
+Round 107: Accuracy 99.11%
+Round 108: Accuracy 99.09%
+Round 109: Accuracy 99.07%
+Round 110: Accuracy 99.09%
+Round 111: Accuracy 99.09%
+Round 112: Accuracy 99.10%
+Round 113: Accuracy 99.10%
+Round 114: Accuracy 99.09%
+Round 115: Accuracy 99.09%
+Round 116: Accuracy 99.09%
+Round 117: Accuracy 99.11%
+Round 118: Accuracy 99.10%
+Round 119: Accuracy 99.10%
+Round 120: Accuracy 99.12%
+Round 121: Accuracy 99.11%
+Round 122: Accuracy 99.11%
+Round 123: Accuracy 99.10%
+Round 124: Accuracy 99.11%
+Round 125: Accuracy 99.11%
+Round 126: Accuracy 99.11%
+Round 127: Accuracy 99.07%
+Round 128: Accuracy 99.09%
+Round 129: Accuracy 99.11%
+Round 130: Accuracy 99.10%
+Round 131: Accuracy 99.11%
+Round 132: Accuracy 99.12%
+Round 133: Accuracy 99.12%
+Round 134: Accuracy 99.09%
+Round 135: Accuracy 99.10%
+Round 136: Accuracy 99.11%
+Round 137: Accuracy 99.11%
+Round 138: Accuracy 99.12%
+Round 139: Accuracy 99.12%
+Round 140: Accuracy 99.13%
+Round 141: Accuracy 99.11%
+Round 142: Accuracy 99.13%
+Round 143: Accuracy 99.13%
+Round 144: Accuracy 99.08%
+Round 145: Accuracy 99.12%
+Round 146: Accuracy 99.10%
+Round 147: Accuracy 99.11%
+Round 148: Accuracy 99.13%
+Round 149: Accuracy 99.09%
+Round 150: Accuracy 99.13%
+Round 151: Accuracy 99.11%
+Round 152: Accuracy 99.12%
+Round 153: Accuracy 99.13%
+Round 154: Accuracy 99.11%
+Round 155: Accuracy 99.11%
+Round 156: Accuracy 99.12%
+Round 157: Accuracy 99.12%
+Round 158: Accuracy 99.12%
+Round 159: Accuracy 99.12%
