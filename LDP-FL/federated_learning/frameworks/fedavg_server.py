@@ -1,21 +1,21 @@
 import collections
 import numpy as np
 import torch
-from torch import tensor
 
-from constant import constants as const
-from data_process.data_mnist_read import MnistInput
-from fl_framework.fl_models.mnist_2nn_model import MNIST2NN
-from fl_framework.fl_models.mnist_cnn_model import MNISTCNN
-from fl_framework.fl_models.mnist_resnet_model \
+from constant import consts as const
+from data_process.data_mnist_read import DatasetMnist
+
+from federated_learning.models.mlp import MLP
+from federated_learning.models.mnist_cnn_model import MNISTCNN
+from federated_learning.models.mnist_resnet_model \
     import _resnet, BasicBlock, Bottleneck
 
-from fl_framework.fl_models.fedavg_client import FedAvgClient
+from federated_learning.frameworks.fedavg_client import FedAvgClient
 from pub_lib.pub_libs import analyze_dist_of_single_att
 
 
 class FedAvgServer(object):
-    def __init__(self, client_no, client_train_ratio, model_type,
+    def __init__(self, client_no, client_train_ratio, dataset, model_type,
                  is_iid=True, round_no=500, epoch_no=10, lr=0.001):
         # client info
         self.client_no = client_no
@@ -24,6 +24,7 @@ class FedAvgServer(object):
         self.clients = list()
 
         # training examples
+        self.dataset = dataset
         self.training_examples = None
         self.training_example_no = None
         self.training_row_pixel = None
@@ -39,7 +40,7 @@ class FedAvgServer(object):
 
         # model info
         self.model_type = model_type
-        self.mnist_model = None
+        self.global_model = None
         self.epoch_no = epoch_no
         self.lr = lr
         self.loss_fn = None
@@ -48,25 +49,26 @@ class FedAvgServer(object):
         self.current_client_model_params = None
 
     def prepare_data(self):
-        mnist_data = MnistInput()
-        mnist_data.read_data()
+        if self.dataset.upper() == const.DATASET_MNIST:
+            data = DatasetMnist()
+            data.read_data()
 
         self.training_examples = \
-            torch.from_numpy(mnist_data.training_examples).type(torch.float32)
-        self.training_row_pixel = mnist_data.training_row_pixel
-        self.training_column_pixel = mnist_data.training_column_pixel
+            torch.from_numpy(data.training_examples).type(torch.float32)
+        self.training_row_pixel = data.training_row_pixel
+        self.training_column_pixel = data.training_column_pixel
         self.training_example_no = self.training_examples.shape[0]
 
         self.training_labels = \
-            torch.from_numpy(mnist_data.training_labels).type(torch.int64)
+            torch.from_numpy(data.training_labels).type(torch.int64)
         self.unique_labels = self.training_labels.unique()
         self.label_unique_no = self.unique_labels.size()[0]
         self.training_labels = self.training_labels.reshape(-1, 1)
 
         self.test_examples = \
-            torch.from_numpy(mnist_data.test_examples).type(torch.float32)
+            torch.from_numpy(data.test_examples).type(torch.float32)
         self.test_labels = \
-            torch.from_numpy(mnist_data.test_labels).type(torch.int64)
+            torch.from_numpy(data.test_labels).type(torch.int64)
         self.test_example_no = self.test_examples.shape[0]
 
     def data_dispatcher(self):
@@ -88,7 +90,6 @@ class FedAvgServer(object):
             """
             # 10 is ok.
             example_block_no = 1
-
             client_order = np.arange(self.client_no * example_block_no)
             np.random.shuffle(client_order)
             client_order = client_order.reshape(-1, example_block_no)
@@ -111,18 +112,20 @@ class FedAvgServer(object):
             print("Client %s - Dist of Examples: %s" % (i, label_dist))
         print("--------------- End ----------------------")
 
-    def initial_model(self, conv_kernel_size=None, conv_stride=None,
-                      conv_padding=None, conv_channels=None,
-                      pooling_kernel_size=2, pooling_stride=2,
-                      fc_neuron_no=512):
+    def construct_model(self, conv_kernel_size=None, conv_stride=None,
+                        conv_padding=None, conv_channels=None,
+                        pooling_kernel_size=2, pooling_stride=2,
+                        fc_neuron_no=512):
         if self.model_type == const.MNIST_MLP_MODEL:
-            self.mnist_model = MNIST2NN(self.training_row_pixel,
-                                        self.training_column_pixel,
-                                        self.label_unique_no,
-                                        200)
-            self.mnist_model.initial_layers()
+            num_neurons = [200, 200]
+            self.global_model = MLP(self.training_row_pixel,
+                                    self.training_column_pixel,
+                                    1,
+                                    self.label_unique_no,
+                                    num_neurons)
+            self.global_model.construct_model()
         elif self.model_type == const.MNIST_CNN_MODEL:
-            self.mnist_model = MNISTCNN(
+            self.global_model = MNISTCNN(
                 self.training_row_pixel,
                 self.training_column_pixel,
                 self.label_unique_no,
@@ -133,17 +136,17 @@ class FedAvgServer(object):
                 pooling_kernel_size,
                 pooling_stride,
                 fc_neuron_no)
-            self.mnist_model.initial_layers()
+            self.global_model.initial_layers()
         elif self.model_type == const.ResNet18_MODEL:
-            self.mnist_model = _resnet(BasicBlock, [2, 2, 2, 2], None, False)
+            self.global_model = _resnet(BasicBlock, [2, 2, 2, 2], None, False)
         elif self.model_type == const.ResNet34_MODEL:
-            self.mnist_model = _resnet(BasicBlock, [3, 4, 6, 3], None, False)
+            self.global_model = _resnet(BasicBlock, [3, 4, 6, 3], None, False)
         elif self.model_type == const.ResNet50_MODEL:
-            self.mnist_model = _resnet(Bottleneck, [3, 4, 6, 3], None, False)
+            self.global_model = _resnet(Bottleneck, [3, 4, 6, 3], None, False)
         elif self.model_type == const.ResNet101_MODEL:
-            self.mnist_model = _resnet(Bottleneck, [3, 4, 23, 3], None, False)
+            self.global_model = _resnet(Bottleneck, [3, 4, 23, 3], None, False)
         elif self.model_type == const.ResNet152_MODEL:
-            self.mnist_model = _resnet(Bottleneck, [3, 8, 36, 3], None, False)
+            self.global_model = _resnet(Bottleneck, [3, 8, 36, 3], None, False)
         else:
             print("Error: There is no model named %s" % self.model_type)
             exit(1)
@@ -167,10 +170,10 @@ class FedAvgServer(object):
                                               replace=False)
             client_model_params = list()
             training_num = 0
-            model_paras = self.mnist_model.state_dict()
+            model_paras = self.global_model.state_dict()
 
             for j in chosen_clients:
-                self.clients[j].initial_model(self.mnist_model)
+                self.clients[j].construct_model(self.global_model)
                 # self.clients[j].initial_model(
                 #     self.mnist_model, {"conv_kernel_size": })
                 training_num = training_num + len(self.client_data_dispatch[j])
@@ -195,7 +198,7 @@ class FedAvgServer(object):
                     key_sum += client_data_ratio * client_model_params[k][key]
                 fed_state_dict[key] = key_sum
 
-            self.mnist_model.load_state_dict(fed_state_dict)
+            self.global_model.load_state_dict(fed_state_dict)
             with torch.no_grad():
                 acc = self.compute_accuracy()
                 print("Round %s: Accuracy %.2f%%" % (i, acc * 100))
@@ -216,7 +219,7 @@ class FedAvgServer(object):
         return fed_state_dict
 
     def model_parameter_no(self):
-        paras = list(self.mnist_model.parameters())
+        paras = list(self.global_model.parameters())
         print("------------- Model Structure -------------")
         for num, para in enumerate(paras):
             para_size = para.size()
@@ -226,13 +229,13 @@ class FedAvgServer(object):
     def compute_accuracy(self):
         accuracy = 0.0
         if self.model_type in [const.MNIST_CNN_MODEL, const.ResNet18_MODEL]:
-            result = self.mnist_model(
+            result = self.global_model(
                 self.test_examples.reshape(
                     self.test_example_no, 1, self.training_row_pixel,
                     self.training_column_pixel))\
                 .reshape(self.test_example_no, -1)
         elif self.model_type == const.MNIST_MLP_MODEL:
-            result = self.mnist_model(self.test_examples)\
+            result = self.global_model(self.test_examples)\
                 .reshape(self.test_example_no, -1)
         else:
             exit(1)

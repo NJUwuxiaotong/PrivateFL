@@ -2,10 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from constant import constants as const
-from fl_framework.fl_models.mnist_2nn_model import MNIST2NN
-from fl_framework.fl_models.mnist_cnn_model import MNISTCNN
-from fl_framework.fl_models.mnist_resnet_model import _resnet
+from constant import consts as const
 
 
 class FedAvgClient(object):
@@ -18,18 +15,12 @@ class FedAvgClient(object):
         self.epoch_total_loss = 0.0
         self.lr = lr
 
-        self.local_mnist_model = None
+        self.local_model = None
         self.epoch_no = epoch_no
         self.loss_fn = nn.CrossEntropyLoss()
 
-    def initial_model(self, model, **kwargs):
+    def construct_model(self, model, **kwargs):
         """
-        if self.model_type == const.MNIST_MLP_MODEL:
-            self.local_mnist_model = MNIST2NN(
-                self.training_row_pixel,
-                self.training_column_pixel,
-                self.label_unique_no,
-                200)
         elif self.model_type == const.MNIST_CNN_MODEL:
             self.local_mnist_model = MNISTCNN(
                 self.training_row_pixel,
@@ -39,13 +30,13 @@ class FedAvgClient(object):
         self.local_mnist_model.initial_layers()
         self.local_mnist_model.load_state_dict(model_params)
         """
-        self.local_mnist_model = model
+        self.local_model = model
 
     def training_model(self, training_examples, training_labels,
                        training_example_no, test_examples, test_labels,
                        batch_size=50):
         opt = torch.optim.SGD(
-            self.local_mnist_model.parameters(), lr=self.lr)
+            self.local_model.parameters(), lr=self.lr)
         batch_no = int(training_example_no / batch_size)
 
         for epoch in range(self.epoch_no):
@@ -66,7 +57,7 @@ class FedAvgClient(object):
                         batch_size, 1, self.training_row_pixel,
                         self.training_column_pixel)
 
-                pred_labels = self.local_mnist_model(examples_feature)
+                pred_labels = self.local_model(examples_feature)
 
                 loss = self.loss_fn(pred_labels, examples_labels[0])
 
@@ -78,19 +69,19 @@ class FedAvgClient(object):
             # with torch.no_grad():
             #     acc = self.compute_accuracy(test_examples, test_labels)
             #     print("Epoch %s: Accuracy %.2f%%" % (epoch, acc * 100))
-        return self.local_mnist_model.state_dict()
+        return self.local_model.state_dict()
 
     def compute_accuracy(self, test_examples, test_labels):
         accuracy = 0.0
         test_example_no = len(test_examples)
         if self.model_type in [const.MNIST_CNN_MODEL, const.ResNet18_MODEL]:
-            result = self.local_mnist_model(
+            result = self.local_model(
                 test_examples.reshape(
                     test_example_no, 1, self.training_row_pixel,
                     self.training_column_pixel))\
                 .reshape(test_example_no, -1)
         elif self.model_type == const.MNIST_MLP_MODEL:
-            result = self.local_mnist_model(test_examples)\
+            result = self.local_model(test_examples)\
                 .reshape(test_example_no, -1)
         else:
             exit(1)
@@ -103,11 +94,11 @@ class FedAvgClient(object):
 
     def stochastic_gradient_descent(self, training_examples, training_labels,
                                     training_example_no):
-        opt = torch.optim.SGD(self.local_mnist_model.parameters(), self.lr)
+        opt = torch.optim.SGD(self.local_model.parameters(), self.lr)
         for epoch in range(self.epoch_no):
             for example_no in range(training_example_no):
                 pred_label = \
-                    self.local_mnist_model(training_examples[example_no])
+                    self.local_model(training_examples[example_no])
                 loss = \
                     self.loss_fn(pred_label, training_labels[example_no])
                 with torch.no_grad():
@@ -115,4 +106,4 @@ class FedAvgClient(object):
                 opt.zero_grad()
                 loss.backward()
                 opt.step()
-        return self.local_mnist_model.state_dict()
+        return self.local_model.state_dict()

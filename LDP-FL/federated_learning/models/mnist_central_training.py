@@ -4,12 +4,12 @@ import torch
 import torchvision
 from torch import nn
 
-from constant import constants as const
-from data_process.data_mnist_read import MnistInput
-from fl_framework.fl_models.mnist_cnn_model import MNISTCNN
-from fl_framework.fl_models.mnist_2nn_model import MNIST2NN
+from constant import consts as const
+from data_process.data_mnist_read import DatasetMnist
+from federated_learning.models.mnist_cnn_model import MNISTCNN
+from federated_learning.models.mnist_2nn_model import MNIST2NN
 
-from fl_framework.fl_models.mnist_resnet_model import \
+from federated_learning.models.mnist_resnet_model import \
     _resnet, BasicBlock, Bottleneck
 
 
@@ -38,7 +38,7 @@ class MNISTCentralGen(object):
 
     def prepare_data(self):
         # data
-        mnist_data = MnistInput()
+        mnist_data = DatasetMnist()
         mnist_data.read_data()
 
         self.training_examples = \

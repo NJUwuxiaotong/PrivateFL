@@ -1,5 +1,5 @@
-from constant import constants as const
-from fl_framework.fl_models.mnist_central_training import MNISTCentralGen
+from constant import consts as const
+from federated_learning.models.mnist_central_training import MNISTCentralGen
 
 
 output_file_dir = const.OUTPUT_ROOT_DIR + "MNIST_2NN_Neuron200_LR0001"

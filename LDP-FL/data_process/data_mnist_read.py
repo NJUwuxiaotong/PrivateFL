@@ -3,10 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from data_process.data_read import DataInput
-from constant import constants as const
+from constant import consts as const
 
 
-class MnistInput(DataInput):
+class DatasetMnist(DataInput):
     def __init__(self):
         super().__init__(const.DATASET_MNIST)
         self.training_row_pixel = 0
@@ -23,8 +23,7 @@ class MnistInput(DataInput):
         # read the labels
         self.training_examples_no, self.training_labels = \
             self.read_labels(const.MNIST_TRAIN_LABEL_DIR)
-
-        self.training_label_unique_no = 0
+        self.num_classes = 0
 
         # read the test examples
         self.test_examples_no, self.test_row_pixel, self.test_column_pixel, \

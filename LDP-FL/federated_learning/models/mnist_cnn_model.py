@@ -1,14 +1,14 @@
 from torch import nn
 
-from fl_framework.fl_models.mnist_model import MNISTModel
+from federated_learning.models.model import IntModel
 
 
-class MNISTCNN(MNISTModel):
-    def __init__(self, row_pixel, column_pixel, label_no, conv_kernel_size,
-                 conv_stride, conv_padding, conv_channels,
+class MNISTCNN(IntModel):
+    def __init__(self, row_pixel, column_pixel, num_channels, label_no,
+                 conv_kernel_size, conv_stride, conv_padding, conv_channels,
                  pooling_kernel_size=2,
                  pooling_stride=2, fc_neuron_no=512):
-        super().__init__(row_pixel, column_pixel, label_no)
+        super().__init__(row_pixel, column_pixel, num_channels, label_no)
 
         # convolution layer
         self.conv_kernel_size = conv_kernel_size
@@ -47,7 +47,7 @@ class MNISTCNN(MNISTModel):
         self.dense = nn.Sequential(
             nn.Linear(7*7*self.conv_channels[2], self.fc_neuron_no),
             nn.ReLU(),
-            nn.Linear(self.fc_neuron_no, self.label_no),
+            nn.Linear(self.fc_neuron_no, self.num_classes),
             nn.Softmax(dim=1)
         )
 

@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from fl_framework.fl_models.mnist_model import MNISTModel
 from functools import partial
 from typing import Type, Any, Callable, Union, List, Optional
 

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from abc import ABC, abstractmethod
 
-from constant import constants as const
+from constant import consts as const
 
 
 class DataInput():
