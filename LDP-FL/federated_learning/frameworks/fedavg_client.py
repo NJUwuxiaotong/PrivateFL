@@ -7,17 +7,19 @@ from constant import consts as const
 
 class FedAvgClient(object):
     def __init__(self, model_type, training_row_pixel, training_column_pixel,
-                 label_unique_no, epoch_no=10, lr=0.001):
+                 label_unique_no):
+        # epoch_no=10, lr=0.001
         self.model_type = model_type
         self.label_unique_no = label_unique_no
         self.training_row_pixel = training_row_pixel
         self.training_column_pixel = training_column_pixel
-        self.epoch_total_loss = 0.0
-        self.lr = lr
 
         self.local_model = None
-        self.epoch_no = epoch_no
         self.loss_fn = nn.CrossEntropyLoss()
+
+        self.epoch_total_loss = 0.0
+        # self.epoch_no = None
+        # self.lr = None
 
     def construct_model(self, model, **kwargs):
         """
@@ -33,13 +35,13 @@ class FedAvgClient(object):
         self.local_model = model
 
     def training_model(self, training_examples, training_labels,
-                       training_example_no, test_examples, test_labels,
+                       training_example_no, epoch_no=10, lr=0.001,
                        batch_size=50):
         opt = torch.optim.SGD(
-            self.local_model.parameters(), lr=self.lr)
+            self.local_model.parameters(), lr=lr)
         batch_no = int(training_example_no / batch_size)
 
-        for epoch in range(self.epoch_no):
+        for epoch in range(epoch_no):
             start_pos = 0
 
             new_example_order = np.arange(training_example_no)
@@ -62,7 +64,7 @@ class FedAvgClient(object):
                 loss = self.loss_fn(pred_labels, examples_labels[0])
 
                 opt.zero_grad()
-                loss.backward()
+                loss.backward()    # w.grad
                 opt.step()
                 start_pos = start_pos + batch_size
 

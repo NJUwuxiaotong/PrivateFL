@@ -14,11 +14,14 @@ import datetime
 def system_startup(args=None, defs=None):
     """Print useful system information."""
     # Choose GPU device and print status information:
-    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda:0') \
+        if torch.cuda.is_available() else torch.device('cpu')
     setup = dict(device=device, dtype=torch.float)  # non_blocking=NON_BLOCKING
-    print('Currently evaluating -------------------------------:')
+    print('PrivateFederatedLearning -------------------------------:')
     print(datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p"))
-    print(f'CPUs: {torch.get_num_threads()}, GPUs: {torch.cuda.device_count()} on {socket.gethostname()}.')
+    print(f'CPUs: {torch.get_num_threads()}, '
+          f'GPUs: {torch.cuda.device_count()} '
+          f'on {socket.gethostname()}.')
     if args is not None:
         print(args)
     if defs is not None:

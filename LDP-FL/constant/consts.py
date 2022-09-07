@@ -37,6 +37,11 @@ BATCH_GD = "batch gd"
 STOCHASTIC_GD = "stochastic gd"
 MINI_BATCH_GD = "mini batch gd"
 
+# attack example demo path
+ATTACK_EXAMPLE_DEMO_DIR = \
+    "C:\\workspace\\workspace\\projects\\PrivateFL\\LDP-FL\\attack\\" \
+    "attack_example_demo.jpg"
+
 # output file
 OUTPUT_ROOT_DIR = \
     "C:\\workspace\workspace\\projects\\PrivateFL\\LDP-FL\\test_results\\"
