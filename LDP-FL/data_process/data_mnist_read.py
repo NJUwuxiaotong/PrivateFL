@@ -35,7 +35,7 @@ class DatasetMnist(DataInput):
             self.read_labels(const.MNIST_TEST_LABEL_DIR)
 
         # image_normalized
-        self.centralized()
+        # self.centralized()
 
     @staticmethod
     def read_images(dataset_dir):

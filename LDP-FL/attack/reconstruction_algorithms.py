@@ -93,14 +93,14 @@ class GradientReconstructor():
 
                 def loss_fn(pred, labels):
                     labels = torch.nn.functional.softmax(labels, dim=-1)
-                    return torch.mean(torch.sum(- labels * torch.nn.functional.log_softmax(pred, dim=-1), 1))
+                    return torch.mean(
+                        torch.sum(- labels * torch.nn.functional.log_softmax(pred, dim=-1), 1))
                 self.loss_fn = loss_fn
         else:
             assert labels.shape[0] == self.num_images
             self.reconstruct_label = False
 
         try:
-            import pdb ;pdb.set_trace()
             for trial in range(self.config['restarts']):
                 # reconstruct the image and the corresponding labels
                 x_trial, labels = self._run_trial(
@@ -120,10 +120,12 @@ class GradientReconstructor():
 
         # Choose optimal result:
         if self.config['scoring_choice'] in ['pixelmean', 'pixelmedian']:
-            x_optimal, stats = self._average_trials(x, labels, input_data, stats)
+            x_optimal, stats = self._average_trials(
+                x, labels, input_data, stats)
         else:
             print('Choosing optimal result ...')
-            scores = scores[torch.isfinite(scores)]  # guard against NaN/-Inf scores?
+            # guard against NaN/-Inf scores?
+            scores = scores[torch.isfinite(scores)]
             optimal_index = torch.argmin(scores)
             print(f'Optimal result score: {scores[optimal_index]:2.4f}')
             stats['opt'] = scores[optimal_index].item()
@@ -134,11 +136,15 @@ class GradientReconstructor():
 
     def _init_images(self, img_shape):
         if self.config['init'] == 'randn':
-            return torch.randn((self.config['restarts'], self.num_images, *img_shape), **self.setup)
+            return torch.randn((self.config['restarts'],
+                                self.num_images, *img_shape), **self.setup)
         elif self.config['init'] == 'rand':
-            return (torch.rand((self.config['restarts'], self.num_images, *img_shape), **self.setup) - 0.5) * 2
+            return (torch.rand(
+                (self.config['restarts'], self.num_images, *img_shape),
+                **self.setup) - 0.5) * 2
         elif self.config['init'] == 'zeros':
-            return torch.zeros((self.config['restarts'], self.num_images, *img_shape), **self.setup)
+            return torch.zeros((self.config['restarts'],
+                                self.num_images, *img_shape), **self.setup)
         else:
             raise ValueError()
 
@@ -197,7 +203,8 @@ class GradientReconstructor():
                             torch.max(torch.min(x_trial, (1 - dm) / ds),
                                       -dm / ds)
 
-                    if (iteration + 1 == max_iterations) or iteration % 500 == 0:
+                    if (iteration + 1 == max_iterations) or \
+                            iteration % 5000 == 0:
                         print(f'It: {iteration}. '
                               f'Rec. loss: {rec_loss.item():2.4f}.')
 
@@ -427,22 +434,27 @@ def reconstruction_costs(gradients, input_gradient, cost_fn='l2',
         costs = 0
         if indices == 'topk-2':
             _, indices = torch.topk(
-                torch.stack([p.norm().detach() for p in trial_gradient], dim=0), 4)
+                torch.stack([p.norm().detach() for p in trial_gradient],
+                            dim=0), 4)
         for i in indices:
             if cost_fn == 'l2':
-                costs += ((trial_gradient[i] - input_gradient[i]).pow(2)).sum() * weights[i]
+                costs += ((trial_gradient[i] - input_gradient[i]).pow(2))\
+                             .sum() * weights[i]
             elif cost_fn == 'l1':
-                costs += ((trial_gradient[i] - input_gradient[i]).abs()).sum() * weights[i]
+                costs += ((trial_gradient[i] - input_gradient[i]).abs())\
+                             .sum() * weights[i]
             elif cost_fn == 'max':
-                costs += ((trial_gradient[i] - input_gradient[i]).abs()).max() * weights[i]
+                costs += ((trial_gradient[i] - input_gradient[i]).abs())\
+                             .max() * weights[i]
             elif cost_fn == 'sim':
-                costs -= (trial_gradient[i] * input_gradient[i]).sum() * weights[i]
+                costs -= \
+                    (trial_gradient[i] * input_gradient[i]).sum() * weights[i]
                 pnorm[0] += trial_gradient[i].pow(2).sum() * weights[i]
                 pnorm[1] += input_gradient[i].pow(2).sum() * weights[i]
             elif cost_fn == 'simlocal':
-                costs += 1 - torch.nn.functional.cosine_similarity(trial_gradient[i].flatten(),
-                                                                   input_gradient[i].flatten(),
-                                                                   0, 1e-10) * weights[i]
+                costs += 1 - torch.nn.functional.cosine_similarity(
+                    trial_gradient[i].flatten(), input_gradient[i].flatten(),
+                    0, 1e-10) * weights[i]
         if cost_fn == 'sim':
             costs = 1 + costs / pnorm[0].sqrt() / pnorm[1].sqrt()
 

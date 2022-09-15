@@ -24,7 +24,11 @@ if __name__ == "__main__":
     # get loss function for the given dataset
     # loss_fn = data_process.get_loss_fn(args.dataset)
 
-    # construct the server and perform the operations before training
+    # construct a server and multiple clients
     fl_server = FedAvgServer(args, setup)
+
+    # dispatch data to the clients
     fl_server.prepare_before_training()
+
+    # train and attack model
     fl_server.train_model()

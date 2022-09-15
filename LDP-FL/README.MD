@@ -29,11 +29,17 @@ Datasets:
 * .
 
 The framework of PriFL.
-* Server.
-* Client.
+* <b>console</b>. Control the construction of a server and a set of clients. 
+Control the data dispatch of clients.
+* <b>Server</b>. Construct and aggregate the global model according to the 
+local models from clients.
+* <b>Client</b>. Train the local model over the local dataset.
 
 Command:
 > a
+
+Key influence:
+* \# of parameters vs. \# of features
 
 References
 -------------------------

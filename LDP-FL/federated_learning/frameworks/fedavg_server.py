@@ -1,10 +1,14 @@
 import collections
 from copy import deepcopy
 import numpy as np
+import os
 from PIL import Image
 import torch
+import torchvision
 
-from attack.reconstruction_algorithms import FedAvgReconstructor
+from loss import Classification
+
+from attack.reconstruction_algorithms import FedAvgReconstructor, GradientReconstructor
 from attack import metrics
 from attack.modules import MetaMonkey
 from constant import consts
@@ -80,7 +84,6 @@ class FedAvgServer(object):
 
         # prepare for the attack
         self.select_attack_rounds()
-        self.select_attack_targets()
 
     def prepare_data(self):
         """
@@ -173,6 +176,7 @@ class FedAvgServer(object):
                                     self.label_unique_no,
                                     num_neurons)
             self.global_model.construct_model()
+            self.global_model.eval()
         elif self.model_type == consts.MNIST_CNN_MODEL:
             self.global_model = MNISTCNN(
                 self.training_row_pixel,
@@ -206,11 +210,18 @@ class FedAvgServer(object):
                 self.model_type,
                 self.training_row_pixel,
                 self.training_column_pixel,
-                self.label_unique_no,
-                self.epoch_no, self.lr)
+                self.label_unique_no)
             self.clients.append(train_client)
 
     def train_model(self):
+        print("Launch inverting attack:")
+        ground_truth, labels, target_example_index = \
+            self.init_target_example(0)
+        recon_result = self.invert_gradient_attack(ground_truth, labels)
+        self.save_reconstruction_example(
+            ground_truth, recon_result, labels, target_example_index)
+
+    def train_model1(self):
         client_train_no = int(self.client_no * self.client_ratio)
         for i in range(self.round_no):
             # randomly select part of clients
@@ -235,16 +246,16 @@ class FedAvgServer(object):
                         self.epoch_no, self.lr)
                 client_model_params.append(local_model)
 
-                # launch inverting gradient attack
-                import pdb; pdb.set_trace()
-                if i in self.attack_rounds and chosen_client in \
-                        self.attack_targets:
-                    # launch an attack
-                    print("Launch inverting attack:")
-                    ground_truth, labels = \
-                        self.init_target_example(chosen_client)
-                    self.invert_gradient_attack(chosen_client, ground_truth,
-                                                labels)
+            # launch inverting gradient attack
+            if i in self.attack_rounds:
+                target_client_index = self.select_attack_targets()
+                target_client_id = chosen_clients[target_client_index]
+                print("Launch inverting attack:")
+                ground_truth, labels, target_example_index = \
+                    self.init_target_example(target_client_id)
+                recon_result = self.invert_gradient_attack(ground_truth, labels)
+                self.save_reconstruction_example(
+                    ground_truth, recon_result, labels, target_example_index)
 
             # update the global model parameters
             weight_keys = list(client_model_params[0].keys())
@@ -252,17 +263,17 @@ class FedAvgServer(object):
             for key in weight_keys:
                 key_sum = 0
                 for k in range(client_train_no):
-                    # client_paras = \
-                    #     self.clients[i].local_mnist_2nn_model.state_dict()
                     client_data_ratio = \
                         len(self.client_data_dispatch[k]) / training_num
                     key_sum += client_data_ratio * client_model_params[k][key]
                 fed_state_dict[key] = key_sum
 
             self.global_model.load_state_dict(fed_state_dict)
+
             with torch.no_grad():
-                acc = self.compute_accuracy()
-                print("Round %s: Accuracy %.2f%%" % (i, acc * 100))
+                if (i+1) % 10 == 0:
+                    acc = self.compute_accuracy()
+                    print("Round %s: Accuracy %.2f%%" % (i+1, acc * 100))
 
     def aggregate_global_model(self):
         weight_keys = list(self.current_client_model_params[0].keys())
@@ -270,8 +281,6 @@ class FedAvgServer(object):
         for key in weight_keys:
             key_sum = 0
             for i in range(self.client_no):
-                # client_paras = \
-                #     self.clients[i].local_mnist_2nn_model.state_dict()
                 client_data_ratio = \
                     len(self.client_data_dispatch[i]) / self.training_example_no
                 key_sum += \
@@ -324,9 +333,8 @@ class FedAvgServer(object):
 
     def select_attack_targets(self):
         # select attack target in each attack round
-        for i in range(self.attack_no):
-            self.attack_targets.append(
-                np.random.randint(int(self.client_no * self.client_ratio)))
+        target_id = np.random.randint(int(self.client_no * self.client_ratio))
+        return target_id
 
     def init_target_example(self, target_client_index):
         if self.sys_args.demo_target:  # demo image
@@ -361,7 +369,7 @@ class FedAvgServer(object):
             )
             print("The target example of client [ID: %s] is %s" %
                   (target_client_index, target_example_index))
-        return ground_truth, labels
+        return ground_truth, labels, target_example_index
 
     def compute_updated_parameters(self, updated_parameters):
         patched_model = MetaMonkey(self.global_model)
@@ -375,16 +383,26 @@ class FedAvgServer(object):
                    patched_model_origin.parameters.items()))
         return list(patched_model.parameters.values())
 
-    def invert_gradient_attack(self, target_client_id, target_ground_truth,
-                               target_labels):
+    def invert_gradient_attack(self, target_ground_truth, target_labels):
         local_gradient_steps = self.sys_args.accumulation
+        # local_lr = 1e-4
         local_lr = 1e-4
+        target_client = FedAvgClient(self.model_type,
+                                     self.training_row_pixel,
+                                     self.training_column_pixel,
+                                     self.label_unique_no)
+        target_client.construct_model(self.global_model)
+
+        """
         updated_parameters = \
-            self.clients[target_client_id].training_model(
-                target_ground_truth, target_labels, 1,
-                local_gradient_steps, local_lr)
+            target_client.training_model(target_ground_truth, target_labels, 1,
+                                         local_gradient_steps, local_lr)
         updated_parameters = self.compute_updated_parameters(updated_parameters)
         updated_parameters = [p.detach() for p in updated_parameters]
+        """
+
+        updated_parameters = self.test_compute_gradient(
+            target_ground_truth, target_labels)
 
         config = dict(
             signed=self.sys_args.signed,
@@ -392,10 +410,10 @@ class FedAvgServer(object):
             cost_fn=self.sys_args.cost_fn,
             indices=self.sys_args.indices,
             weights=self.sys_args.weights,
-            lr=1,
+            lr=0.1,
             optim=self.sys_args.optimizer,
             restarts=self.sys_args.restarts,
-            max_iterations=24_000,
+            max_iterations=2_4000,
             total_variation=self.sys_args.tv,
             init=self.sys_args.init,
             filter="none",
@@ -403,11 +421,17 @@ class FedAvgServer(object):
             scoring_choice=self.sys_args.scoring_choice,
         )
 
+        """
         rec_machine = FedAvgReconstructor(
             self.global_model, (self.dm, self.ds),
             local_gradient_steps, local_lr, config,
             num_images=self.sys_args.num_images, use_updates=True
         )
+        """
+
+        rec_machine = GradientReconstructor(
+            self.global_model, (self.dm, self.ds), config, num_images=1)
+
         output, stats = rec_machine.reconstruct(
             updated_parameters, target_labels, img_shape=self.img_shape,
             dryrun=self.sys_args.dryrun)
@@ -417,7 +441,38 @@ class FedAvgServer(object):
         feat_mse = \
             (self.global_model(output) - self.global_model(target_ground_truth))\
                 .pow(2).mean().item()
-        test_psnr = metrics.psnr(output, target_ground_truth, factor=1 / self.ds)
+        test_psnr = \
+            metrics.psnr(output, target_ground_truth, factor=1 / self.ds)
 
         print("Test Mse: %s, Feat Mse: %s, Test Psnr: %s" %
               (test_mse, feat_mse, test_psnr))
+        return output
+
+    def save_reconstruction_example(self, ground_truth, output, labels,
+                                    example_id):
+        # Save the resulting image
+        if self.sys_args.save_image:
+            os.makedirs(self.sys_args.image_path, exist_ok=True)
+            output_denormalized = torch.clamp(output * self.ds + self.dm, 0, 1)
+            rec_filename = (
+                f'Re_{labels}_{self.sys_args.model_name}_{self.sys_args.cost_fn}-{example_id}.png'
+            )
+            torchvision.utils.save_image(output_denormalized, os.path.join(
+                self.sys_args.image_path, rec_filename))
+
+            gt_denormalized = torch.clamp(ground_truth * self.ds + self.dm, 0, 1)
+            gt_filename = f"Int_{labels}_ground_truth-{example_id}.png"
+            torchvision.utils.save_image(gt_denormalized, os.path.join(
+                self.sys_args.image_path, gt_filename))
+
+    def test_compute_gradient(self, ground_truth, labels):
+        self.global_model.zero_grad()
+        loss_fn = Classification()
+        self.global_model.zero_grad()
+        target_loss, _, _ = loss_fn(self.global_model(ground_truth), labels)
+
+        # compute the gradients based on loss, parameters
+        input_gradient = torch.autograd.grad(
+            target_loss, self.global_model.parameters())
+        input_gradient = [grad.detach() for grad in input_gradient]
+        return input_gradient

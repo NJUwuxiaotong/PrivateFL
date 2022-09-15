@@ -25,13 +25,15 @@ def options():
                         help='Vision model.')
     parser.add_argument("--round_no", default=100, type=int,
                         help='the number of round of global model')
-    parser.add_argument('--epoch_no', default=120, type=int,
+    parser.add_argument('--epoch_no', default=10, type=int,
                         help='If using a trained model, how many epochs was '
                              'it trained?')
     parser.add_argument('--lr', default=0.01, type=float,
                         help='the learning ratio in model training')
 
     # invert gradient attack
+    parser.add_argument('--attack_app', default=None, type=str,
+                        help='attack approach')
     parser.add_argument('--attack_no', default=None, type=int,
                         help='The numbe of attacks')
     parser.add_argument('--demo_target', default=False, type=bool,
@@ -41,7 +43,7 @@ def options():
                              '[Not during training!].')
     parser.add_argument('--trained_model', action='store_true',
                         help='Use a trained model.')
-    parser.add_argument('--accumulation', default=10, type=int,
+    parser.add_argument('--accumulation', default=1, type=int,
                         help='Accumulation 0 is rec. from gradient, '
                              'accumulation > 0 is reconstruction '
                              'from fed. averaging.')
@@ -79,10 +81,11 @@ def options():
                         help='Weight of TV penalty.')
 
     # Files and folders:
-    parser.add_argument('--save_image', action='store_true',
+    parser.add_argument('--save_image', default=True, action='store_true',
                         help='Save the output to a file.')
-
-    parser.add_argument('--image_path', default='images/', type=str)
+    parser.add_argument('--image_path', default='attack_results/images/',
+                        type=str, help='the path to save the reconstruction '
+                                       'image')
     parser.add_argument('--model_path', default='models/', type=str)
     parser.add_argument('--table_path', default='tables/', type=str)
     parser.add_argument('--data_path', default='~/data', type=str)

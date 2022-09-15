@@ -43,6 +43,8 @@ class MLP(IntModel):
                 only a row vector in the matrix
         """
         # the first hidden layer computation
+        # import pdb; pdb.set_trace()
+        input = input.reshape(-1, self.row_pixel * self.column_pixel)
         hidden_layer1_output = self.hidden_layer1(input)
         hidden_layer1_output = self.relu(hidden_layer1_output)
 
@@ -52,5 +54,5 @@ class MLP(IntModel):
 
         # the output layer computation
         output_layer_result = self.output_layer(hidden_layer2_output)
-        output_layer_result = self.softmax(output_layer_result)
+        # output_layer_result = self.softmax(output_layer_result)
         return output_layer_result

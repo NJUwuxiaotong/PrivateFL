@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import torch
 from torch import nn
@@ -32,7 +34,7 @@ class FedAvgClient(object):
         self.local_mnist_model.initial_layers()
         self.local_mnist_model.load_state_dict(model_params)
         """
-        self.local_model = model
+        self.local_model = deepcopy(model)
 
     def training_model(self, training_examples, training_labels,
                        training_example_no, epoch_no=10, lr=0.001,
@@ -41,9 +43,12 @@ class FedAvgClient(object):
             self.local_model.parameters(), lr=lr)
         batch_no = int(training_example_no / batch_size)
 
+        if batch_no == 0:
+            batch_no = 1
+            batch_size = training_example_no
+
         for epoch in range(epoch_no):
             start_pos = 0
-
             new_example_order = np.arange(training_example_no)
             np.random.shuffle(new_example_order)
             for i in range(batch_no):
@@ -60,13 +65,18 @@ class FedAvgClient(object):
                         self.training_column_pixel)
 
                 pred_labels = self.local_model(examples_feature)
-
                 loss = self.loss_fn(pred_labels, examples_labels[0])
-
                 opt.zero_grad()
                 loss.backward()    # w.grad
                 opt.step()
-                start_pos = start_pos + batch_size
+
+                if batch_no == 0:
+                    for name, params in self.local_model.named_parameters():
+                        print(params.grad)
+                    exit(1)
+
+                if batch_no != 0:
+                    start_pos = start_pos + batch_size
 
             # with torch.no_grad():
             #     acc = self.compute_accuracy(test_examples, test_labels)
