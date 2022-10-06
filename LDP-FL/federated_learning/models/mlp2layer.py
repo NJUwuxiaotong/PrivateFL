@@ -1,17 +1,26 @@
-from collections import OrderedDict
 from torch import nn
 
-from federated_learning.models.model import IntModel
 
-
-class MLP(IntModel):
-    def __init__(self, row_pixel, column_pixel, num_channels, num_classes,
-                 neurons_of_hidden_layers):
+class MLP2Layer(object):
+    """
+    MnistMLP is a mlp model for dataset MNIST.
+    """
+    def __init__(self, example_shape, class_no, neurons_of_hidden_layers):
         """
         num_neurons: a set of neurons in middle layers of mlp.
         """
-        super().__init__(row_pixel, column_pixel, num_channels, num_classes)
+        self.access_no = example_shape[0]
+        self.row_pixel = example_shape[1]
+        self.column_pixel = example_shape[2]
+        self.class_no = class_no
+        self.feature_no = self.access_no * self.row_pixel * self.column_pixel
+
         self.neurons_of_hidden_layers = neurons_of_hidden_layers
+        self.hidden_layer1 = None
+        self.hidden_layer2 = None
+        self.output_layer = None
+        self.relu = None
+        self.softmax = None
 
     def construct_model(self):
         """
@@ -21,13 +30,13 @@ class MLP(IntModel):
             4th: output layer
         """
         # hidden layers
-        self.hidden_layer1 = nn.Linear(self.num_pixels,
+        self.hidden_layer1 = nn.Linear(self.feature_no,
                                        self.neurons_of_hidden_layers[0])
         self.hidden_layer2 = nn.Linear(self.neurons_of_hidden_layers[0],
                                        self.neurons_of_hidden_layers[1])
         # output layer
         self.output_layer = nn.Linear(self.neurons_of_hidden_layers[1],
-                                      self.num_classes)
+                                      self.class_no)
         # activation function in hidden layers
         self.relu = nn.ReLU()
 
@@ -44,7 +53,7 @@ class MLP(IntModel):
         """
         # the first hidden layer computation
         # import pdb; pdb.set_trace()
-        input = input.reshape(-1, self.row_pixel * self.column_pixel)
+        input = input.reshape(-1, self.feature_no)
         hidden_layer1_output = self.hidden_layer1(input)
         hidden_layer1_output = self.relu(hidden_layer1_output)
 

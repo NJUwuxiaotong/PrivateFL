@@ -40,6 +40,7 @@ class Strategy:
             self.dryrun = dryrun
         self.validate = 10
 
+
 @dataclass
 class ConservativeStrategy(Strategy):
     """Default usual parameters, defines a config object."""

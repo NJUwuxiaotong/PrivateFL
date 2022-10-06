@@ -8,16 +8,22 @@ from constant import consts as const
 
 
 class FedAvgClient(object):
-    def __init__(self, model_type, training_row_pixel, training_column_pixel,
-                 label_unique_no):
+    def __init__(self, model_type, data_loader, data_info, example_shape,
+                 class_no, loss_fn):
         # epoch_no=10, lr=0.001
         self.model_type = model_type
-        self.label_unique_no = label_unique_no
-        self.training_row_pixel = training_row_pixel
-        self.training_column_pixel = training_column_pixel
+        self.data_loader = data_loader
+        self.data_info = data_info
+        self.example_shape = example_shape
+        self.label_unique_no = class_no
+
+        self.channel_no = example_shape[0]
+        self.training_row_pixel = example_shape[1]
+        self.training_column_pixel = example_shape[2]
 
         self.local_model = None
-        self.loss_fn = nn.CrossEntropyLoss()
+        self.loss_fn = loss_fn
+        # self.loss_fn = nn.CrossEntropyLoss()
 
         self.epoch_total_loss = 0.0
         # self.epoch_no = None

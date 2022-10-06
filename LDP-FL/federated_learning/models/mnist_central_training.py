@@ -5,8 +5,8 @@ import torchvision
 from torch import nn
 
 from constant import consts as const
-from data_process.data_mnist_read import DatasetMnist
-from federated_learning.models.mnist_cnn_model import MNISTCNN
+from data_process.data_load import DatasetMnist
+from federated_learning.models.cnn2layer import CNN2Layer
 from federated_learning.models.mnist_2nn_model import MNIST2NN
 
 from federated_learning.models.mnist_resnet_model import \
@@ -76,7 +76,7 @@ class MNISTCentralGen(object):
             )
             self.mnist_training_model.initial_layers()
         elif self.model_name == const.MNIST_CNN_MODEL:
-            self.mnist_training_model = MNISTCNN(
+            self.mnist_training_model = CNN2Layer(
                 self.training_row_pixel,
                 self.training_column_pixel,
                 self.label_unique_no,

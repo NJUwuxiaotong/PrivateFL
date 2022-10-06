@@ -8,21 +8,21 @@ import torchvision
 
 from loss import Classification
 
-from attack.reconstruction_algorithms import FedAvgReconstructor, GradientReconstructor
+from attack.reconstruction_algorithms \
+    import FedAvgReconstructor, GradientReconstructor
 from attack import metrics
 from attack.modules import MetaMonkey
 from constant import consts
-from data_process.data_mnist_read import DatasetMnist
-from federated_learning.models.mlp import MLP
-from federated_learning.models.mnist_cnn_model import MNISTCNN
+from federated_learning.models.mlp2layer import MLP2Layer
+from federated_learning.models.cnn2layer import CNN2Layer
 from federated_learning.models.mnist_resnet_model \
     import _resnet, BasicBlock, Bottleneck
 from federated_learning.frameworks.fedavg_client import FedAvgClient
-from pub_lib.pub_libs import analyze_dist_of_single_att
 
 
 class FedAvgServer(object):
-    def __init__(self, sys_args, sys_setup):
+    def __init__(self, sys_args, sys_defs, sys_setup, valid_loader, valid_info,
+                 class_no):
         # get arguments
         self.sys_args = sys_args
         self.sys_setup = sys_setup
@@ -30,12 +30,10 @@ class FedAvgServer(object):
         # client info
         self.client_no = sys_args.client_no
         self.client_ratio = sys_args.client_ratio
-        self.is_iid = sys_args.is_iid
         self.clients = list()
 
         # dataset and the corresponding dm and ds ([[[*]]]) from consts
         self.dataset = sys_args.dataset
-        self.img_shape = None
         self.dm = torch.as_tensor(
             getattr(consts,
                     f"{self.dataset.upper()}_MEAN"), **sys_setup)[:, None, None]
@@ -43,29 +41,30 @@ class FedAvgServer(object):
             getattr(consts,
                     f"{self.dataset.upper()}_STD"), **sys_setup)[:, None, None]
 
-        # training examples
-        self.training_examples = None
-        self.training_example_no = None
-        self.training_row_pixel = None
-        self.training_column_pixel = None
-        self.training_labels = None
-        self.label_unique_no = None
+        # example info
+        self.example_shape = valid_info.example_shape
+        self.example_access_num = self.example_shape[0]
+        self.example_row_pixel = self.example_shape[1]
+        self.example_column_pixel = self.example_shape[2]
+
+        self.class_no = class_no
         self.unique_labels = None
 
         # test examples
-        self.test_examples = None
+        self.valid_loader = valid_loader
+        self.valid_info = valid_info
         self.test_labels = None
-        self.test_example_no = None
+        self.test_example_no = valid_info.example_no
 
         # model info
         self.model_type = sys_args.model_name
         self.epoch_no = sys_args.epoch_no
         self.round_no = sys_args.round_no
         self.lr = sys_args.lr
+        self.batch_size = sys_defs.batch_size
 
         self.global_model = None
         self.loss_fn = None
-        self.client_data_dispatch = None
         self.current_client_model_params = None
 
         # attack information
@@ -75,8 +74,6 @@ class FedAvgServer(object):
 
     def prepare_before_training(self):
         # prepare for the model training
-        self.prepare_data()
-        self.data_dispatcher()
         self.construct_model()
         self.init_client_models()
         self.global_model.to(**self.sys_setup)
@@ -85,110 +82,30 @@ class FedAvgServer(object):
         # prepare for the attack
         self.select_attack_rounds()
 
-    def prepare_data(self):
-        """
-        training examples:
-            torch: no * num_access * row_pixel * column_pixel
-        training labels:
-            torch: no * labels
-        """
-        if self.dataset.upper() == consts.DATASET_MNIST:
-            data = DatasetMnist()
-            data.read_data()
-            num_access = 1
-
-        self.training_examples = \
-            torch.from_numpy(data.training_examples).type(torch.float32)
-        self.training_row_pixel = data.training_row_pixel
-        self.training_column_pixel = data.training_column_pixel
-        self.training_example_no = self.training_examples.shape[0]
-        self.training_examples = self.training_examples.reshape(
-            self.training_example_no, num_access, self.training_row_pixel,
-            self.training_column_pixel)
-
-        self.training_labels = \
-            torch.from_numpy(data.training_labels).type(torch.int64)
-        self.unique_labels = self.training_labels.unique()
-        self.label_unique_no = self.unique_labels.size()[0]
-        self.training_labels = self.training_labels.reshape(-1, 1)
-
-        self.test_examples = \
-            torch.from_numpy(data.test_examples).type(torch.float32)
-        self.test_labels = \
-            torch.from_numpy(data.test_labels).type(torch.int64)
-        self.test_example_no = self.test_examples.shape[0]
-
-        # the first parameter is the number of image channels
-        # img_shape = (3, ground_truth.shape[2], ground_truth.shape[3])
-        self.img_shape = (num_access, self.training_row_pixel,
-                          self.training_column_pixel)
-
-    def data_dispatcher(self):
-        """
-        Function: execute the data assignment for the clients.
-        self.client_data_dispatch - type: array, shape: client_no * example_no
-        """
-        if self.is_iid:
-            # training examples shuffle
-            self.client_data_dispatch = np.arange(self.training_example_no)
-            np.random.shuffle(self.client_data_dispatch)
-            self.client_data_dispatch = \
-                self.client_data_dispatch.reshape(self.client_no, -1)
-        else:
-            """
-            Dispatch method 1:
-            self.client_data_dispatch = \
-                self.training_labels.reshape(1, -1).numpy().argsort()[0]
-            """
-            # 10 is ok.
-            example_block_no = 1
-            client_order = np.arange(self.client_no * example_block_no)
-            np.random.shuffle(client_order)
-            client_order = client_order.reshape(-1, example_block_no)
-
-            self.client_data_dispatch = \
-                self.training_labels.reshape(1, -1).numpy().argsort()[0]
-            self.client_data_dispatch = \
-                self.client_data_dispatch.reshape(
-                    self.client_no * example_block_no, -1)
-            self.client_data_dispatch = self.client_data_dispatch[client_order]
-            self.client_data_dispatch = \
-                self.client_data_dispatch.reshape(self.client_no, -1)
-
-        print("---------- Data Distribution -------------")
-        print("Dist of Total Examples is %s" %
-              analyze_dist_of_single_att(self.training_labels))
-        for i in range(self.client_no):
-            label_dist = analyze_dist_of_single_att(
-                self.training_labels[self.client_data_dispatch[i]])
-            # print("Client %s - Dist of Examples: %s" % (i, label_dist))
-        print("--------------- End ----------------------")
-
-    def construct_model(self, conv_kernel_size=None, conv_stride=None,
+    def construct_model(self, **model_params):
+        """conv_kernel_size=None, conv_stride=None,
                         conv_padding=None, conv_channels=None,
                         pooling_kernel_size=2, pooling_stride=2,
-                        fc_neuron_no=512):
+                        fc_neuron_no=512
+        """
         if self.model_type == consts.MNIST_MLP_MODEL:
             num_neurons = [200, 200]
-            self.global_model = MLP(self.training_row_pixel,
-                                    self.training_column_pixel,
-                                    1,
-                                    self.label_unique_no,
-                                    num_neurons)
+            self.global_model = MLP2Layer(self.example_shape,
+                                          self.class_no,
+                                          num_neurons)
             self.global_model.construct_model()
             self.global_model.eval()
         elif self.model_type == consts.MNIST_CNN_MODEL:
-            self.global_model = MNISTCNN(
-                self.training_row_pixel,
-                self.training_column_pixel,
-                self.label_unique_no,
-                conv_kernel_size,
-                conv_stride,
-                conv_padding,
-                conv_channels,
-                pooling_kernel_size,
-                pooling_stride,
-                fc_neuron_no)
+            self.global_model = CNN2Layer(
+                self.example_shape,
+                self.class_no,
+                conv_kernel_size=1,
+                conv_stride=1,
+                conv_padding=1,
+                conv_channels=1,
+                pooling_kernel_size=2,
+                pooling_stride=2,
+                fc_neuron_no=512)
             self.global_model.initial_layers()
         elif self.model_type == consts.ResNet18_MODEL:
             self.global_model = _resnet(BasicBlock, [2, 2, 2, 2], None, False)
@@ -203,15 +120,6 @@ class FedAvgServer(object):
         else:
             print("Error: There is no model named %s" % self.model_type)
             exit(1)
-
-    def init_client_models(self):
-        for i in range(self.client_no):
-            train_client = FedAvgClient(
-                self.model_type,
-                self.training_row_pixel,
-                self.training_column_pixel,
-                self.label_unique_no)
-            self.clients.append(train_client)
 
     def train_model(self):
         print("Launch inverting attack:")
@@ -361,7 +269,7 @@ class FedAvgServer(object):
             labels = self.training_labels[target_example_index]
 
             if self.sys_args.label_flip:
-                labels = (labels + 1) % self.label_unique_no
+                labels = (labels + 1) % self.class_no
 
             ground_truth, labels = (
                 ground_truth.unsqueeze(0).to(**self.sys_setup),
@@ -390,7 +298,7 @@ class FedAvgServer(object):
         target_client = FedAvgClient(self.model_type,
                                      self.training_row_pixel,
                                      self.training_column_pixel,
-                                     self.label_unique_no)
+                                     self.class_no)
         target_client.construct_model(self.global_model)
 
         """
@@ -433,7 +341,7 @@ class FedAvgServer(object):
             self.global_model, (self.dm, self.ds), config, num_images=1)
 
         output, stats = rec_machine.reconstruct(
-            updated_parameters, target_labels, img_shape=self.img_shape,
+            updated_parameters, target_labels, img_shape=self.example_shape,
             dryrun=self.sys_args.dryrun)
 
         # Compute stats

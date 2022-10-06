@@ -13,7 +13,7 @@ DATASET_DIR = {
     DATASET_ADULT: DATASET_ROOT_DIR + "dataset_adult\\",
     DATASET_BIRD: DATASET_ROOT_DIR + "dataset_bird\\",
     DATASET_CIFR10: DATASET_ROOT_DIR + "dataset_cifar-10\\",
-    DATASET_MNIST: DATASET_ROOT_DIR + "dataset_mnist\\",
+    DATASET_MNIST: DATASET_ROOT_DIR + "mnist\\",
     DATASET_TCWWS: DATASET_ROOT_DIR + "dataset_tcwws\\"}
 
 MNIST_TRAIN_IMAGE_DIR = \

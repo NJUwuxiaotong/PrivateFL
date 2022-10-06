@@ -41,6 +41,9 @@ Command:
 Key influence:
 * \# of parameters vs. \# of features
 
+Tricks:
+* 
+
 References
 -------------------------
 

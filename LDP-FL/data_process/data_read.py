@@ -1,9 +1,3 @@
-import gzip
-import numpy as np
-import matplotlib.pyplot as plt
-
-from abc import ABC, abstractmethod
-
 from constant import consts as const
 
 
@@ -25,6 +19,5 @@ class DataInput():
             print("ERROR: Dataset [%s] does not exist!" % self.dataset_name)
             exit(1)
 
-    @abstractmethod
     def read_data(self):
         pass
