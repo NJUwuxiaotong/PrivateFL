@@ -1,7 +1,7 @@
 from torch import nn
 
 
-class MLP2Layer(object):
+class MLP2Layer(nn.Module):
     """
     MnistMLP is a mlp model for dataset MNIST.
     """
@@ -9,6 +9,7 @@ class MLP2Layer(object):
         """
         num_neurons: a set of neurons in middle layers of mlp.
         """
+        super(MLP2Layer, self).__init__()
         self.access_no = example_shape[0]
         self.row_pixel = example_shape[1]
         self.column_pixel = example_shape[2]

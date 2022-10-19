@@ -1,6 +1,7 @@
 import torch
 import options
 import utils
+from torch import nn
 
 from constant import consts
 from federated_learning import FedAvgServer, FedAvgClient
@@ -11,7 +12,6 @@ from data_process.data_load \
 from data_process.data_dispatch import data_dispatcher
 
 from torch.utils.data import Subset
-from torch.utils.data.sampler import SubsetRandomSampler
 
 torch.backends.cudnn.benchmark = consts.BENCHMARK
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         construct_data_loaders(train_dataset, batch_size=len(train_dataset),
                                shuffle=False)
     valid_loader, valid_info = \
-        construct_data_loaders(valid_dataset, batch_size=sys_defs.batch_size,
+        construct_data_loaders(valid_dataset, batch_size=len(valid_dataset),
                                shuffle=False)
 
     # construct examples' indexes that be allocated to clients
@@ -42,9 +42,12 @@ if __name__ == "__main__":
     data_dispatch_index = data_dispatcher(sys_args.is_iid, sys_args.client_no,
                                           train_labels)
 
+    # softmax -> log -> NLLoss
+    loss_fn = nn.CrossEntropyLoss()
+
     # construct a server
-    fl_server = FedAvgServer(sys_args, setup, valid_loader, valid_info,
-                             valid_info.example_shape)
+    fl_server = FedAvgServer(sys_args, sys_defs, setup, valid_loader,
+                             valid_info, valid_info.class_no)
 
     # construct multiple clients
     fl_clients = list()
@@ -52,14 +55,15 @@ if __name__ == "__main__":
         client_data_subset = Subset(train_dataset, data_dispatch_index[0])
         client_train_loader, client_train_info = \
             construct_data_loaders(client_data_subset, sys_defs.batch_size)
-        fl_client = FedAvgClient(sys_args, client_train_loader,
+        fl_client = FedAvgClient(sys_args.model_name, client_train_loader,
                                  client_train_info,
                                  client_train_info.example_shape,
-                                 train_info.class_no)
+                                 train_info.class_no, loss_fn)
         fl_clients.append(fl_client)
 
     # dispatch data to the clients
     fl_server.prepare_before_training()
 
     # train and attack model
-    fl_server.train_model()
+    fl_server.train_model(fl_clients)
+

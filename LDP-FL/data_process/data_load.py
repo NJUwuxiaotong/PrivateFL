@@ -10,7 +10,17 @@ def get_dataset(dataset_name):
     dataset_dir = consts.DATASET_ROOT_DIR
     if dataset_name.upper() == consts.DATASET_MNIST:
         train_set, valid_set = _build_mnist(dataset_dir, normalize=True)
+    elif dataset_name.upper() == consts.DATASET_MNIST_GRAY:
+        train_set, valid_set = _build_mnist_gray(dataset_dir, normalize=True)
+    elif dataset_name.upper == consts.DATASET_CIFAR10:
+        train_set, valid_set = _build_cifar10(dataset_dir, normalize=True)
+    elif dataset_name.upper() == consts.DATASET_CIFAR100:
+        train_set, valid_set = _build_cifar100(dataset_dir, normalize=True)
+    elif dataset_name.upper() == consts.DATASET_IMAGENET:
+        train_set, valid_set = _build_imagenet(dataset_dir, normalize=True)
     else:
+        train_set = None
+        valid_set = None
         print("Error: No dataset named %s!" % dataset_name)
         exit(1)
     return train_set, valid_set
@@ -58,7 +68,6 @@ class DataStats(object):
 
 
 def _build_mnist(data_path, augmentations=True, normalize=True):
-    """Define MNIST with everything considered."""
     data_mean = consts.MNIST_MEAN[0]
     data_std = consts.MNIST_STD[0]
 
@@ -69,16 +78,6 @@ def _build_mnist(data_path, augmentations=True, normalize=True):
     valid_set = torchvision.datasets.MNIST(
         root=data_path, train=False, download=True,
         transform=transforms.ToTensor())
-
-    """
-    if mnist_mean is None:
-        cc = torch.cat(
-            [train_set[i][0].reshape(-1) for i in range(len(train_set))], dim=0)
-        data_mean = (torch.mean(cc, dim=0).item(),)
-        data_std = (torch.std(cc, dim=0).item(),)
-    else:
-        data_mean, data_std = mnist_mean, mnist_std
-    """
 
     # Organize pre_processing
     transform = transforms.Compose([
@@ -94,4 +93,126 @@ def _build_mnist(data_path, augmentations=True, normalize=True):
     else:
         train_set.transform = transform
     valid_set.transform = transform
+    return train_set, valid_set
+
+
+def _build_mnist_gray(data_path, augmentations=True, normalize=True):
+    data_mean = consts.MNIST_MEAN[0]
+    data_std = consts.MNIST_STD[0]
+
+    # Load data
+    train_set = torchvision.datasets.MNIST(
+        root=data_path, train=True, download=True,
+        transform=transforms.ToTensor())
+    valid_set = torchvision.datasets.MNIST(
+        root=data_path, train=False, download=True,
+        transform=transforms.ToTensor())
+
+    # Organize preprocessing
+    transform = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
+        transforms.ToTensor(),
+        transforms.Normalize(data_mean, data_std)
+        if normalize else transforms.Lambda(lambda x: x)])
+    if augmentations:
+        transform_train = transforms.Compose([
+            transforms.Grayscale(num_output_channels=1),
+            transforms.RandomCrop(28, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transform])
+        train_set.transform = transform_train
+    else:
+        train_set.transform = transform
+    valid_set.transform = transform
+
+    return train_set, valid_set
+
+
+def _build_cifar10(data_path, augmentations=True, normalize=True):
+    data_mean = consts.CIFAR10_MEAN[0]
+    data_std = consts.CIFAR10_STD[0]
+
+    # Load data
+    train_set = torchvision.datasets.CIFAR10(
+        root=data_path, train=True, download=True,
+        transform=transforms.ToTensor())
+    valid_set = torchvision.datasets.CIFAR10(
+        root=data_path, train=False, download=True,
+        transform=transforms.ToTensor())
+
+    # Organize pre_processing
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(data_mean, data_std)
+        if normalize else transforms.Lambda(lambda x: x)])
+    if augmentations:
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transform])
+        train_set.transform = transform_train
+    else:
+        train_set.transform = transform
+    valid_set.transform = transform
+    return train_set, valid_set
+
+
+def _build_cifar100(data_path, augmentations=True, normalize=True):
+    data_mean = consts.CIFAR100_MEAN[0]
+    data_std = consts.CIFAR100_STD[0]
+
+    # Load data
+    train_set = torchvision.datasets.CIFAR100(
+        root=data_path, train=True, download=True,
+        transform=transforms.ToTensor())
+    valid_set = torchvision.datasets.CIFAR100(
+        root=data_path, train=False, download=True,
+        transform=transforms.ToTensor())
+
+    # Organize preprocessing
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(data_mean, data_std)
+        if normalize else transforms.Lambda(lambda x: x)])
+    if augmentations:
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transform])
+        train_set.transform = transform_train
+    else:
+        valid_set.transform = transform
+    valid_set.transform = transform
+
+    return train_set, valid_set
+
+
+def _build_imagenet(data_path, augmentations=True, normalize=True):
+    data_mean = consts.IMAGENET_MEAN[0]
+    data_std = consts.IMAGENET_STD[0]
+
+    # Load data
+    train_set = torchvision.datasets.ImageNet(
+        root=data_path, split='train', transform=transforms.ToTensor())
+    valid_set = torchvision.datasets.ImageNet(
+        root=data_path, split='val', transform=transforms.ToTensor())
+
+    # Organize preprocessing
+    transform = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(data_mean, data_std)
+        if normalize else transforms.Lambda(lambda x : x)])
+    if augmentations:
+        transform_train = transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(data_mean, data_std) if normalize else transforms.Lambda(lambda x : x)])
+        train_set.transform = transform_train
+    else:
+        train_set.transform = transform
+    valid_set.transform = transform
+
     return train_set, valid_set

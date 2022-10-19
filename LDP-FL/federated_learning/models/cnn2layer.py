@@ -1,70 +1,62 @@
 from torch import nn
 
 
-class CNN2Layer(object):
+class CNN2Layer(nn.Module):
     def __init__(self, example_shape, class_no, **model_params):
+        super(CNN2Layer, self).__init__()
         self.example_shape = example_shape
         self.channel_no = example_shape[0]
         self.row_pixel = example_shape[1]
         self.column_pixel = example_shape[2]
         self.class_no = class_no
-        self.feature_no = self.access_no * self.row_pixel * self.column_pixel
-
-        """
-        conv_kernel_size, conv_stride, conv_padding, conv_channels,
-        pooling_kernel_size = 2,
-        pooling_stride = 2, fc_neuron_no = 512
-        """
+        self.feature_no = self.channel_no * self.row_pixel * self.column_pixel
 
         # convolution layer
-        self.conv_kernel_size = model_params["conv_kernel_size"]
-        self.conv_stride = model_params["conv_stride"]
-        self.conv_padding = model_params["conv_padding"]
-        self.conv_channels = model_params["conv_channels"]
+        self.conv1_params = model_params["conv1"]
+        self.conv2_params = model_params["conv2"]
 
         # pooling layer
-        self.pooling_kernel_size = model_params["pooling_kernel_size"]
-        self.pooling_stride = model_params["pooling_stride"]
+        self.pool1_params = model_params["pool1"]
+        self.pool2_params = model_params["pool2"]
 
         # fully connected layer
-        self.fc_neuron_no = model_params["fc_neuron_no"]
+        self.fc_params = model_params["fc"]
+
+        # model layers
+        self.conv1 = None
+        self.conv2 = None
+        self.dense = None
 
     def initial_layers(self):
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_channels=self.conv_channels[0],
-                      out_channels=self.conv_channels[1],
-                      kernel_size=self.conv_kernel_size,
-                      stride=self.conv_stride,
-                      padding=self.conv_padding),
+            nn.Conv2d(in_channels=self.conv1_params["in_channel"],
+                      out_channels=self.conv1_params["out_channels"],
+                      kernel_size=self.conv1_params["kernel_size"],
+                      stride=self.conv1_params["stride"],
+                      padding=self.conv1_params["padding"]),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=self.pooling_kernel_size,
-                         stride=self.pooling_stride))
+            nn.MaxPool2d(kernel_size=self.pool1_params["kernel_size"],
+                         stride=self.pool1_params["stride"]))
 
         self.conv2 = nn.Sequential(
-            nn.Conv2d(in_channels=self.conv_channels[1],
-                      out_channels=self.conv_channels[2],
-                      kernel_size=self.conv_kernel_size,
-                      stride=self.conv_stride,
-                      padding=self.conv_padding),
+            nn.Conv2d(in_channels=self.conv2_params["in_channel"],
+                      out_channels=self.conv2_params["out_channels"],
+                      kernel_size=self.conv2_params["kernel_size"],
+                      stride=self.conv2_params["stride"],
+                      padding=self.conv2_params["padding"]),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=self.pooling_kernel_size,
-                         stride=self.pooling_stride))
+            nn.MaxPool2d(kernel_size=self.pool2_params["kernel_size"],
+                         stride=self.pool2_params["stride"]))
 
         self.dense = nn.Sequential(
-            nn.Linear(7*7*self.conv_channels[2], self.fc_neuron_no),
+            nn.Linear(self.fc_params["in_neuron"],
+                      self.fc_params["out_neuron"]),
             nn.ReLU(),
-            nn.Linear(self.fc_neuron_no, self.class_no),
-            nn.Softmax(dim=1)
+            nn.Linear(self.fc_params["out_neuron"], self.class_no),
+            # nn.Softmax(dim=1)
         )
 
     def forward(self, input_example):
-        """
-        input_example: one dimensional matrix
-        """
-        #input_example = input_example.reshape(self.row_pixel, self.column_pixel)
-        #input_example = \
-        #    input_example.view((1, 1) + input_example.shape)
-
         conv1_out = self.conv1(input_example)
         conv2_out = self.conv2(conv1_out)
         res = conv2_out.view(conv2_out.size(0), -1)

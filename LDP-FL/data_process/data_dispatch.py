@@ -38,9 +38,12 @@ def data_dispatcher(is_iid, client_no, training_labels):
     print("---------- Data Distribution -------------")
     print("Dist of Total Examples is %s" %
           analyze_dist_of_single_att(training_labels))
+
+    """
     for i in range(client_no):
         label_dist = analyze_dist_of_single_att(
             training_labels[client_data_dispatch[i]])
-        # print("Client %s - Dist of Examples: %s" % (i, label_dist))
+        print("Client %s - Dist of Examples: %s" % (i, label_dist))
     print("--------------- End ----------------------")
+    """
     return client_data_dispatch

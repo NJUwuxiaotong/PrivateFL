@@ -9,7 +9,7 @@ from data_process.data_load import DatasetMnist
 from federated_learning.models.cnn2layer import CNN2Layer
 from federated_learning.models.mnist_2nn_model import MNIST2NN
 
-from federated_learning.models.mnist_resnet_model import \
+from federated_learning.models.resnet import \
     _resnet, BasicBlock, Bottleneck
 
 

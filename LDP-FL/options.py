@@ -21,11 +21,11 @@ def options():
     parser.add_argument('--dataset', default='mnist', type=str)
 
     # model training information
-    parser.add_argument('--model_name', default='mlp', type=str,
+    parser.add_argument('--model_name', default='mnist mlp', type=str,
                         help='Vision model.')
-    parser.add_argument("--round_no", default=100, type=int,
+    parser.add_argument("--round_no", default=1500, type=int,
                         help='the number of round of global model')
-    parser.add_argument('--epoch_no', default=10, type=int,
+    parser.add_argument('--epoch_no', default=5, type=int,
                         help='If using a trained model, how many epochs was '
                              'it trained?')
     parser.add_argument('--lr', default=0.01, type=float,
