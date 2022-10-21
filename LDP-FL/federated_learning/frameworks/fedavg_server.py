@@ -1,13 +1,12 @@
 import collections
-from copy import deepcopy
 import numpy as np
 import os
-from PIL import Image
 import torch
 import torchvision
-from torch import nn
 
-from loss import Classification
+from copy import deepcopy
+from PIL import Image
+from torch import nn
 
 from attack.reconstruction_algorithms \
     import FedAvgReconstructor, GradientReconstructor

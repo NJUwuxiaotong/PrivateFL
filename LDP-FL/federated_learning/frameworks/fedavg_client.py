@@ -1,8 +1,7 @@
-from copy import deepcopy
+import collections
 import torch
 
-from constant import consts as const
-import collections
+from copy import deepcopy
 from loss import Classification
 from attack.modules import MetaMonkey
 

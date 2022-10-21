@@ -1,17 +1,17 @@
 import torch
 import options
 import utils
-from torch import nn
 
-from constant import consts
-from federated_learning import FedAvgServer, FedAvgClient
-from optimization_strategy import training_strategy
+from torch import nn
+from torch.utils.data import Subset
 
 from data_process.data_load \
     import construct_data_loaders, get_dataset, get_labels_from_loader
 from data_process.data_dispatch import data_dispatcher
+from constant import consts
+from federated_learning import FedAvgServer, FedAvgClient
+from optimization_strategy import training_strategy
 
-from torch.utils.data import Subset
 
 torch.backends.cudnn.benchmark = consts.BENCHMARK
 
@@ -66,4 +66,3 @@ if __name__ == "__main__":
 
     # train and attack model
     fl_server.train_model(fl_clients)
-
