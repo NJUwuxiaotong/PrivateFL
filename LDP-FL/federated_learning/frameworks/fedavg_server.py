@@ -15,6 +15,7 @@ from attack.modules import MetaMonkey
 from constant import consts
 from federated_learning.models.mlp2layer import MLP2Layer
 from federated_learning.models.cnn2layer import CNN2Layer
+from federated_learning.models.cnn4layer import CNN4Layer
 from federated_learning.models.resnet \
     import _resnet, BasicBlock, Bottleneck
 
@@ -41,7 +42,7 @@ class FedAvgServer(object):
 
         # example info
         self.example_shape = valid_info.example_shape
-        self.example_access_num = self.example_shape[0]
+        self.example_channel = self.example_shape[0]
         self.example_row_pixel = self.example_shape[1]
         self.example_column_pixel = self.example_shape[2]
         self.class_no = class_no
@@ -59,7 +60,7 @@ class FedAvgServer(object):
         self.epoch_no = sys_args.epoch_no
         self.round_no = sys_args.round_no
         self.lr = sys_args.lr
-        self.batch_size = sys_defs.batch_size
+        self.batch_size = sys_args.batch_size
 
         self.global_model = None
         self.loss_fn = None
@@ -92,60 +93,142 @@ class FedAvgServer(object):
         self.test_labels = torch.tensor(labels, device=self.sys_setup["device"])
 
     def construct_model(self):
-        if self.model_type == consts.MNIST_MLP_MODEL:
-            num_neurons = [200, 200]
-            self.global_model = MLP2Layer(self.example_shape,
-                                          self.class_no,
-                                          num_neurons)
-            self.global_model.construct_model()
-        elif self.model_type == consts.MNIST_CNN_MODEL:
-            model_params = \
-                {"conv1": {"in_channel": 1,
-                           "out_channels": 32,
-                           "kernel_size": 5,
-                           "stride": 1,
-                           "padding": 2},
-                 "pool1": {"kernel_size": 2,
-                           "stride": 2},
-                 "conv2": {"in_channel": 32,
-                           "out_channels": 64,
-                           "kernel_size": 5,
-                           "stride": 1,
-                           "padding": 2},
-                 "pool2": {"kernel_size": 2,
-                           "stride": 2},
-                 "fc": {"in_neuron": 7*7*64,
-                        "out_neuron": 512}}
-            self.global_model = CNN2Layer(
-                self.example_shape,
-                self.class_no, **model_params)
-            self.global_model.initial_layers()
-        elif self.model_type == consts.ResNet18_MODEL:
-            self.global_model = _resnet(BasicBlock, [2, 2, 2, 2], None, False)
-        elif self.model_type == consts.ResNet34_MODEL:
-            self.global_model = _resnet(BasicBlock, [3, 4, 6, 3], None, False)
-        elif self.model_type == consts.ResNet50_MODEL:
-            self.global_model = _resnet(Bottleneck, [3, 4, 6, 3], None, False)
-        elif self.model_type == consts.ResNet101_MODEL:
-            self.global_model = _resnet(Bottleneck, [3, 4, 23, 3], None, False)
-        elif self.model_type == consts.ResNet152_MODEL:
-            self.global_model = _resnet(Bottleneck, [3, 8, 36, 3], None, False)
+        if self.dataset.upper() == consts.DATASET_MNIST:
+            if self.model_type == consts.MNIST_MLP_MODEL:
+                num_neurons = [200, 200]
+                self.global_model = MLP2Layer(self.example_shape,
+                                              self.class_no,
+                                              num_neurons)
+                self.global_model.construct_model()
+            elif self.model_type == consts.MNIST_CNN_MODEL:
+                model_params = \
+                    {"conv1": {"in_channel": 1,
+                               "out_channels": 32,
+                               "kernel_size": 5,
+                               "stride": 1,
+                               "padding": 2},
+                     "pool1": {"kernel_size": 2,
+                               "stride": 2},
+                     "conv2": {"in_channel": 32,
+                               "out_channels": 64,
+                               "kernel_size": 5,
+                               "stride": 1,
+                               "padding": 2},
+                     "pool2": {"kernel_size": 2,
+                               "stride": 2},
+                     "fc": {"in_neuron": 7*7*64,
+                            "out_neuron": 512}}
+                self.global_model = CNN2Layer(
+                    self.example_shape,
+                    self.class_no, **model_params)
+                self.global_model.initial_layers()
+            elif self.model_type == consts.ResNet18_MODEL:
+                self.global_model = _resnet(BasicBlock, [2, 2, 2, 2],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet34_MODEL:
+                self.global_model = _resnet(BasicBlock, [3, 4, 6, 3],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet50_MODEL:
+                self.global_model = _resnet(Bottleneck, [3, 4, 6, 3],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet101_MODEL:
+                self.global_model = _resnet(Bottleneck, [3, 4, 23, 3],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet152_MODEL:
+                self.global_model = _resnet(Bottleneck, [3, 8, 36, 3],
+                                            self.example_channel, None, False)
+        elif self.dataset.upper() == consts.DATASET_CIFAR10:
+            if self.model_type == consts.CIFAR10_CNN_MODEL:
+                model_params = {"conv1": {"in_channel": 3,
+                               "out_channels": 32,
+                               "kernel_size": 3,
+                               "stride": 1,
+                               "padding": 1},
+                     "pool1": {"kernel_size": 2,
+                               "stride": 2},
+                     "conv2": {"in_channel": 32,
+                               "out_channels": 64,
+                               "kernel_size": 3,
+                               "stride": 1,
+                               "padding": 1},
+                     "pool2": {"kernel_size": 2,
+                               "stride": 2},
+                     "conv3": {"in_channel": 64,
+                               "out_channels": 128,
+                               "kernel_size": 3,
+                               "stride": 1,
+                               "padding": 1},
+                     "pool3": {"kernel_size": 2,
+                               "stride": 2},
+                     "conv4": {"in_channel": 128,
+                               "out_channels": 256,
+                               "kernel_size": 3,
+                               "stride": 1,
+                               "padding": 1},
+                     #"pool4": {"kernel_size": 2,
+                     #          "stride": 2},
+                     "fc1": {"in_neuron": 4*4*128,
+                            "out_neuron": 4*4*128},
+                     "fc2": {"in_neuron": 4*4*128,
+                             "out_neuron": 128*4}}
+                self.global_model = CNN4Layer(
+                    self.example_shape,
+                    self.class_no, **model_params)
+                self.global_model.initial_layers()
+            elif self.model_type == consts.ResNet18_MODEL:
+                self.global_model = _resnet(BasicBlock, [2, 2, 2, 2],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet34_MODEL:
+                self.global_model = _resnet(BasicBlock, [3, 4, 6, 3],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet50_MODEL:
+                self.global_model = _resnet(Bottleneck, [3, 4, 6, 3],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet101_MODEL:
+                self.global_model = _resnet(Bottleneck, [3, 4, 23, 3],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet152_MODEL:
+                self.global_model = _resnet(Bottleneck, [3, 8, 36, 3],
+                                            self.example_channel, None, False)
+        elif self.dataset == consts.DATASET_IMAGENET:
+            if self.model_type == consts.ResNet18_MODEL:
+                self.global_model = _resnet(BasicBlock, [2, 2, 2, 2],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet34_MODEL:
+                self.global_model = _resnet(BasicBlock, [3, 4, 6, 3],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet50_MODEL:
+                self.global_model = _resnet(Bottleneck, [3, 4, 6, 3],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet101_MODEL:
+                self.global_model = _resnet(Bottleneck, [3, 4, 23, 3],
+                                            self.example_channel, None, False)
+            elif self.model_type == consts.ResNet152_MODEL:
+                self.global_model = _resnet(Bottleneck, [3, 8, 36, 3],
+                                            self.example_channel, None, False)
         else:
             print("Error: There is no model named %s" % self.model_type)
             exit(1)
         self.present_network_structure()
 
-    def train_model(self, fl_clients):
+    def get_client_order(self):
+        # randomly generate the order of clients
+        each_client_no = int(self.round_no * self.client_ratio)
+        clients_order = [i for i in range(self.client_no)] * each_client_no
+        clients_order = np.array(clients_order)
+        np.random.shuffle(clients_order)
+        clients_order = clients_order.reshape(self.round_no, -1)
+        return clients_order
+
+    def train_model(self, fl_clients, is_attack=False):
+        clients_order = self.get_client_order()
         client_train_no = int(self.client_no * self.client_ratio)
-        for i in range(self.round_no):
-            # randomly select part of clients
-            chosen_clients_index = np.random.choice(self.client_no,
-                                                    client_train_no,
-                                                    replace=False)
+
+        for client_order in range(self.round_no):
             client_model_params = list()
             training_example_no_set = list()
-            # model_paras = self.global_model.state_dict()
-            for chosen_client_index in chosen_clients_index:
+            chosen_clients = clients_order[client_order]
+            for chosen_client_index in chosen_clients:
                 # train the local model
                 local_model_param, example_no = \
                     fl_clients[chosen_client_index].training_model(
@@ -155,12 +238,13 @@ class FedAvgServer(object):
                 training_example_no_set.append(example_no)
 
             # launch inverting gradient attack
-            if i in self.attack_rounds:
+            if client_order in self.attack_rounds and is_attack:
                 print("Launch inverting attack:")
                 target_client_id = self.select_attack_targets()
                 ground_truth, labels = \
                     self.init_target_example(fl_clients[target_client_id])
-                print("Attack %s: client %s" % (i+1, target_client_id))
+                print("Attack %s: client %s" % (client_order + 1,
+                                                target_client_id))
                 recon_result = self.invert_gradient_attack(
                     fl_clients[target_client_id], ground_truth, labels)
                 self.save_reconstruction_example(
@@ -180,9 +264,10 @@ class FedAvgServer(object):
             self.global_model.load_state_dict(fed_state_dict)
 
             with torch.no_grad():
-                if (i+1) % 5 == 0:
+                if (client_order+1) % 5 == 0:
                     acc = self.compute_accuracy()
-                    print("Round %s: Accuracy %.2f%%" % (i+1, acc * 100))
+                    print("Round %s: Accuracy %.2f%%" %
+                          (client_order+1, acc * 100))
 
     def present_network_structure(self):
         paras = list(self.global_model.parameters())

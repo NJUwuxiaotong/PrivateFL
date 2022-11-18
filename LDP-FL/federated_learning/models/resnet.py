@@ -151,6 +151,7 @@ class ResNet(nn.Module):
         self,
         block: Type[Union[BasicBlock, Bottleneck]],
         layers: List[int],
+        example_channel: int = 1,
         num_classes: int = 1000,
         zero_init_residual: bool = False,
         groups: int = 1,
@@ -182,7 +183,7 @@ class ResNet(nn.Module):
 
         # the number of channels of the input examples
         # the first parameter 1 or 3
-        self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=7, stride=2,
+        self.conv1 = nn.Conv2d(example_channel, self.inplanes, kernel_size=7, stride=2,
                                padding=3, bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
@@ -283,6 +284,7 @@ class ResNet(nn.Module):
 def _resnet(
     block: Type[Union[BasicBlock, Bottleneck]],
     layers: List[int],
+    example_channel: int,
     weights: None,
     progress: bool,
     **kwargs: Any,
@@ -291,7 +293,9 @@ def _resnet(
     #     _ovewrite_named_param(kwargs, "num_classes",
     #     len(weights.meta["categories"]))
 
-    model = ResNet(block, layers, **kwargs)
+    # import pdb; pdb.set_trace()
+
+    model = ResNet(block, layers, example_channel, **kwargs)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
