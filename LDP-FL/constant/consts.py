@@ -69,5 +69,9 @@ IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
 # perturbation mechanism
-LAPLACE_PERTURB = "laplace"
-GAUSSIAN_PERTURB = "gaussian"
+LAPLACE_DIST = "laplace"
+GAUSSIAN_DIST = "gaussian"
+
+NO_PERTURB = "no_perturb"
+G_LAPLACE_PERTURB = "g_laplace"
+G_GAUSSIAN_PERTURB = "g_gaussian"

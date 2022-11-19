@@ -18,8 +18,10 @@ def options():
                         help='whether the dataset is dispatched iid')
     parser.add_argument("--is_balanced", default=False, type=bool,
                         help="whether the dataset is balanced")
-    parser.add_argument("--privacy_budget", default=1, type=float,
+    parser.add_argument("--privacy_budget", default=100, type=float,
                         help="privacy budget of each client")
+    parser.add_argument("--perturb_mechanism", default="g_laplace", type=str,
+                        help="which perturbation mechanism executed by clients")
 
     # dataset information
     parser.add_argument('--dataset', default='mnist', type=str)
@@ -31,7 +33,7 @@ def options():
                         help='the number of round of global model')
 
     # training for clients
-    parser.add_argument('--epoch_no', default=5, type=int,
+    parser.add_argument('--epoch_no', default=1, type=int,
                         help='If using a trained model, how many epochs was '
                              'it trained?')
     parser.add_argument('--batch_size', default=50, type=int,

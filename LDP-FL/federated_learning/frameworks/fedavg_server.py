@@ -232,8 +232,7 @@ class FedAvgServer(object):
                 # train the local model
                 local_model_param, example_no = \
                     fl_clients[chosen_client_index].training_model(
-                        self.sys_setup, self.global_model,
-                        self.epoch_no, self.lr)
+                        self.global_model, self.epoch_no, self.lr)
                 client_model_params.append(local_model_param)
                 training_example_no_set.append(example_no)
 
