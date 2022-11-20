@@ -1,4 +1,5 @@
 import collections
+import copy
 import numpy as np
 import os
 import torch
@@ -63,6 +64,8 @@ class FedAvgServer(object):
         self.batch_size = sys_args.batch_size
 
         self.global_model = None
+        self.model_shape = None
+        self.center_radius_stats = None
         self.loss_fn = None
         self.current_client_model_params = None
 
@@ -77,6 +80,8 @@ class FedAvgServer(object):
         # prepare for the model training
         self.construct_model()
         self.global_model.to(**self.sys_setup)
+        self.get_model_shape()
+        self.get_center_radius_of_model()
 
         # prepare for the attack
         self.select_attack_rounds()
@@ -224,6 +229,8 @@ class FedAvgServer(object):
         clients_order = self.get_client_order()
         client_train_no = int(self.client_no * self.client_ratio)
 
+        import pdb; pdb.set_trace()
+
         for client_order in range(self.round_no):
             client_model_params = list()
             training_example_no_set = list()
@@ -267,6 +274,45 @@ class FedAvgServer(object):
                     acc = self.compute_accuracy()
                     print("Round %s: Accuracy %.2f%%" %
                           (client_order+1, acc * 100))
+
+    def get_model_shape(self):
+        if self.global_model is None:
+            print("Error: The local model is Null!")
+            exit(1)
+        else:
+            self.model_shape = dict()
+            origin_model = MetaMonkey(self.global_model)
+            for name, param in origin_model.parameters.items():
+                self.model_shape[name] = param.shape
+
+    def get_center_radius_of_model(self):
+        self.center_radius_stats = dict()
+        weights = copy.deepcopy(self.global_model.state_dict())
+        for name, params in self.model_shape.items():
+            self.center_radius_stats[name] = list()
+            if len(params) == 1:
+                self.center_radius_stats[name].append(
+                    self.get_center_radius_of_vector(weights[name]))
+            elif len(params) == 2:
+                for i in range(params[0]):
+                    self.center_radius_stats[name].append(
+                        self.get_center_radius_of_vector(weights[name][i]))
+            else:
+                print("Error: The dimensions of the model > 2!")
+                exit(1)
+        print("Info: Success to Update the center and the radius of the "
+              "weights in the model.")
+
+    def get_center_radius_of_vector(self, value_vector):
+        """
+        :param value_vector: tensor array
+        :return:
+        """
+        max_value = value_vector.max()
+        min_value = value_vector.min()
+        radius_v = (max_value - min_value) / 2.0
+        center_v = min_value + radius_v
+        return (center_v, radius_v)
 
     def present_network_structure(self):
         paras = list(self.global_model.parameters())

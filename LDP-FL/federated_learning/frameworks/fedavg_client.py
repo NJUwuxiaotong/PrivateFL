@@ -1,6 +1,9 @@
 import collections
 import copy
+import math
+
 import numpy as np
+from scipy.stats import bernoulli
 
 import torch
 
@@ -8,6 +11,8 @@ from constant import consts
 from copy import deepcopy
 from loss import Classification
 from attack.modules import MetaMonkey
+
+from pub_lib.pub_libs import bound, random_value_with_probs
 
 
 class FedAvgClient(object):
@@ -52,6 +57,8 @@ class FedAvgClient(object):
         elif self.perturb_mechanism == consts.G_LAPLACE_PERTURB:
             return self.training_model_with_g_Lap_perturb(
                 epoch_no, lr, weight_decay)
+        elif self.perturb_mechanism == consts.FED_SEL:
+            return self.train_model_with_fedsel(global_model, 10, 10, 10)
         elif self.perturb_mechanism == consts.G_GAUSSIAN_PERTURB:
             return None
 
@@ -90,19 +97,141 @@ class FedAvgClient(object):
 
         return self.local_model.state_dict(), self.data_info.example_no
 
-    def train_model_with_dssgd(self, threshold, gradient_range,
+    def train_model_with_fedsel(self, gradients, threshold, gradient_range,
+                               total_dimen_no, epoch_no=10, lr=0.001,
+                               weight_decay=5e-4):
+        privacy_cost1 = 1.0 / 2 * self.single_privacy_cost
+        privacy_cost2 = self.single_privacy_cost - privacy_cost1
+
+        dimen_magnitude = list()
+        for name, params in self.model_shape.items():
+            if len(params) == 1:
+                dimen_magnitude.append(params[0])
+            elif len(params) == 2:
+                dimen_magnitude.extend([params[1]]*params[0])
+            else:
+                print("Error: Dimensions > 2!")
+                exit(1)
+
+        dimen_no = len(dimen_magnitude)
+        dimen_status_vector = np.array(dimen_magnitude)
+        dimen_status_vector = dimen_status_vector.argsort
+
+        dimen_probs = list()
+        for i in range(len(dimen_magnitude)):
+            dimen_index = dimen_status_vector.index(i)
+            prob = math.exp(privacy_cost1 * (dimen_index + 1) /(dimen_no - 1) )
+            dimen_probs.append(prob)
+
+        prob_sum = sum(dimen_probs)
+        dimen_probs = np.array(dimen_probs)
+        dimen_probs /= prob_sum
+        dimen_probs = dimen_probs.tolist()
+
+        chosen_dimens_index = random_value_with_probs(dimen_probs)
+        return chosen_dimens_index
+
+    def train_model_with_ldp_fl(self, center_radius_of_weights):
+        """
+        :param range1: the centers of the range of every layer
+        :param range2: the radius of the range of every layer
+        :return:
+        """
+        # train the model on the local data
+        origin_model = MetaMonkey(self.local_model)
+        model_params = copy.deepcopy(origin_model.state_dict())
+
+        for name, params in self.model_shape.items():
+            if len(params) == 1:
+                for i in range(params[0]):
+                    model_params[name][i] = \
+                        self.bernoulli_noise(
+                            model_params[name][i], self.single_privacy_cost,
+                            center_radius_of_weights[name][i][0],
+                            center_radius_of_weights[name][i][1])
+            elif len(params) == 2:
+                for i in range(params[0]):
+                    for j in range(params[1]):
+                        model_params[name][i][j] = \
+                            self.bernoulli_noise(
+                                model_params[name][i][j],
+                                self.single_privacy_cost,
+                                center_radius_of_weights[name][i][j][0],
+                                center_radius_of_weights[name][i][j][1])
+            else:
+                print("Error: !")
+                exit(1)
+            self.local_model.load_state_dict(model_params)
+
+    def bernoulli_noise(self, weight, privacy_budget, center_v,
+                                 radius_v):
+        prob = ((weight - center_v)*(math.exp(privacy_budget) - 1) +
+                radius_v *(math.exp(privacy_budget) + 1)) / \
+               (2*radius_v*(math.exp(privacy_budget) + 1))
+        random_v = bernoulli.rvs(prob)
+        if random_v == 1:
+            return center_v + \
+                   radius_v * (math.exp(privacy_budget) + 1) / \
+                   (math.exp(privacy_budget) - 1)
+        else:
+            return center_v - \
+                   radius_v * (math.exp(privacy_budget) + 1) / \
+                   (math.exp(privacy_budget) - 1)
+
+    def train_model_with_dssgd(self, gradients, threshold, gradient_range,
                                total_gradient_no, epoch_no=10, lr=0.001,
                                weight_decay=5e-4):
         pre_privacy_cost = self.single_privacy_cost * 8.0 / 9
         perturb_privacy_cost = self.single_privacy_cost * 1.0 / 9
-        is_params_upload = None
-        noise1 = np.random.laplace()
+        noise1 = np.random.laplace(
+            2.0 * total_gradient_no * 1 / pre_privacy_cost)
+        upload_gradients = list()
 
         gradient_no = 0
         while gradient_no <= total_gradient_no:
-            pass
+            chosen_layer_name, chosen_pos = self.selected_gradient_pos()
+            if len(chosen_pos) == 1:
+                chosen_gradient = gradients[chosen_layer_name][chosen_pos[0]]
+            else:
+                chosen_gradient = \
+                    gradients[chosen_layer_name][chosen_pos[0]][chosen_pos[1]]
+            noise2 = np.random.laplace(
+                2 * 2 * total_gradient_no * 1 / pre_privacy_cost)
+            if np.abs(bound(chosen_gradient, gradient_range)) + noise2 \
+                    >= threshold + noise1:
+                noise = np.random.laplace(
+                    2 * total_gradient_no * 1 / perturb_privacy_cost)
+                upload_gradients.append(
+                    (chosen_layer_name, chosen_pos,
+                     bound(chosen_gradient + noise, gradient_range) ))
+                gradient_no = gradient_no + 1
+        return upload_gradients
 
-    def select_gradient(self):
+    def train_model_Local_update(self, gradients, threshold, gradient_range,
+                               total_gradient_no, top_k, epoch_no=10, lr=0.001,
+                               weight_decay=5e-4):
+        # model gradient
+        for name, params in gradients.items():
+            if len(params) == 1:
+                values = gradients[name][params]
+                value_top_k = values.sort().values[top_k]
+                gradients[name][ values < value_top_k ] = 0
+            elif len(params) == 2:
+                for i in range(len(params[0])):
+                    values = gradients[name][i]
+                    value_top_k = values.sort().values[top_k]
+                    gradients[name][values < value_top_k] = 0
+            else:
+                print("Error: !")
+                exit(1)
+
+    def model_l2_norm(self, model_params):
+        l2_norm = 0.0
+        for name, params in model_params.items():
+            l2_norm += torch.norm(model_params[name], p=2)
+        return l2_norm
+
+    def selected_gradient_pos(self):
         chosen_layer = np.random.randint(0, len(self.model_shape))
         layer_names = list(self.model_shape.keys())
         chosen_layer_name = layer_names[chosen_layer]
@@ -129,13 +258,6 @@ class FedAvgClient(object):
             origin_model = MetaMonkey(self.local_model)
             for name, param in origin_model.parameters.items():
                 self.model_shape[name] = param.shape
-
-    def generate_template_params(self, local_model):
-        origin_model = MetaMonkey(local_model)
-        updated_parames = list()
-        with torch.no_grad():
-            for name, param in origin_model.parameters.items():
-                print(name)
 
     def add_constant_to_value(self, local_model, value):
         origin_model = MetaMonkey(local_model)
