@@ -24,3 +24,36 @@ def random_seed(seed=None, modelkey=None):
         model_init_seed = modelkey
     set_random_seed(model_init_seed)
     return model_init_seed
+
+
+def bound(value, range):
+    """
+    :param value: float
+    :param range: float >= 0
+    :return:
+    """
+    if -1.0 * range <= value <= range:
+        return value
+    elif value < -1.0 * range:
+        return -1.0 * range
+    else:
+        return range
+
+
+def random_value_with_probs(probs, num=1, is_duplicate=False):
+    """
+    :param probs: list
+    :return: index
+    """
+
+    chosen_indexes = list()
+    chosen_indexes_no = 0
+    p = np.array(probs)
+
+    while chosen_indexes_no <= num:
+        chosen_index = np.random.choice(range(len(probs)), p=p.ravel())
+        if is_duplicate or \
+                (not is_duplicate and chosen_index not in chosen_indexes ):
+            chosen_indexes.append(chosen_index)
+            chosen_indexes_no += 1
+    return chosen_indexes

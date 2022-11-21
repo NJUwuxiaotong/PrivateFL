@@ -12,7 +12,7 @@ def get_dataset(dataset_name):
         train_set, valid_set = _build_mnist(dataset_dir, normalize=True)
     elif dataset_name.upper() == consts.DATASET_MNIST_GRAY:
         train_set, valid_set = _build_mnist_gray(dataset_dir, normalize=True)
-    elif dataset_name.upper == consts.DATASET_CIFAR10:
+    elif dataset_name.upper() == consts.DATASET_CIFAR10:
         train_set, valid_set = _build_cifar10(dataset_dir, normalize=True)
     elif dataset_name.upper() == consts.DATASET_CIFAR100:
         train_set, valid_set = _build_cifar100(dataset_dir, normalize=True)
@@ -90,6 +90,7 @@ def _build_mnist(data_path, augmentations=True, normalize=True):
             transforms.RandomHorizontalFlip(),
             transform])
         train_set.transform = transform_train
+        #valid_set.transform = transform_train
     else:
         train_set.transform = transform
     valid_set.transform = transform

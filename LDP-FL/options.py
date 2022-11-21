@@ -16,6 +16,12 @@ def options():
                         help='the ratio of clients of global model update')
     parser.add_argument("--is_iid", default=True, type=bool,
                         help='whether the dataset is dispatched iid')
+    parser.add_argument("--is_balanced", default=False, type=bool,
+                        help="whether the dataset is balanced")
+    parser.add_argument("--privacy_budget", default=100, type=float,
+                        help="privacy budget of each client")
+    parser.add_argument("--perturb_mechanism", default="fed_sel", type=str,
+                        help="which perturbation mechanism executed by clients")
 
     # dataset information
     parser.add_argument('--dataset', default='mnist', type=str)
@@ -23,19 +29,25 @@ def options():
     # model training information
     parser.add_argument('--model_name', default='mnist mlp', type=str,
                         help='Vision model.')
-    parser.add_argument("--round_no", default=1500, type=int,
+    parser.add_argument("--round_no", default=200, type=int,
                         help='the number of round of global model')
-    parser.add_argument('--epoch_no', default=5, type=int,
+
+    # training for clients
+    parser.add_argument('--epoch_no', default=1, type=int,
                         help='If using a trained model, how many epochs was '
                              'it trained?')
+    parser.add_argument('--batch_size', default=50, type=int,
+                        help="the size at each batch")
     parser.add_argument('--lr', default=0.01, type=float,
                         help='the learning ratio in model training')
+    parser.add_argument('--weight_decay', default=5e-4, type=float,
+                        help='weight decay')
 
     # invert gradient attack
     parser.add_argument('--attack_app', default=None, type=str,
                         help='attack approach')
     parser.add_argument('--attack_no', default=None, type=int,
-                        help='The numbe of attacks')
+                        help='The number of attacks')
     parser.add_argument('--demo_target', default=False, type=bool,
                         help='Cifar validation image used for reconstruction.')
     parser.add_argument('--dtype', default='float', type=str,
