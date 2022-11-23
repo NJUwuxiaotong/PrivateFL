@@ -229,8 +229,6 @@ class FedAvgServer(object):
         clients_order = self.get_client_order()
         client_train_no = int(self.client_no * self.client_ratio)
 
-        import pdb; pdb.set_trace()
-
         for client_order in range(self.round_no):
             client_model_params = list()
             training_example_no_set = list()

@@ -20,7 +20,7 @@ def options():
                         help="whether the dataset is balanced")
     parser.add_argument("--privacy_budget", default=100, type=float,
                         help="privacy budget of each client")
-    parser.add_argument("--perturb_mechanism", default="fed_sel", type=str,
+    parser.add_argument("--perturb_mechanism", default="ALG_rGaussAGrad16", type=str,
                         help="which perturbation mechanism executed by clients")
 
     # dataset information

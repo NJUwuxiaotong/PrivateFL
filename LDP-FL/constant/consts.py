@@ -76,3 +76,21 @@ NO_PERTURB = "no_perturb"
 G_LAPLACE_PERTURB = "g_laplace"
 G_GAUSSIAN_PERTURB = "g_gaussian"
 FED_SEL = "fed_sel"
+
+ALG_rGaussAGrad16 = "ALG_rGaussAGrad16"
+ALG_eGaussAGrad19 = "ALG_eGaussAGrad19"
+ALG_eGaussAGrad22 = "ALG_eGaussAGrad22"
+ALG_rGaussAGrad18 = "ALG_rGaussAGrad18"
+
+ALG_bGaussAWeig21 = "ALG_bGaussAWeig21"
+ALG_rGaussAWeig19 = "ALG_rGaussAWeig19"
+ALG_rRResAWeig21 = "ALG_rRResAWeig21"
+
+ALG_rLapPGrad15 = "ALG_rLapPGrad15"
+ALG_rExpPWeig20 = "ALG_rExpPWeig20"
+ALG_rGaussPGrad22 = "ALG_rGaussPGrad22"
+
+ALGs_Gradient_OPT = [ALG_rGaussAGrad16, ALG_eGaussAGrad19, ALG_eGaussAGrad22,
+                     ALG_rGaussAGrad18, "gradient_without_pert"]
+ALGs_Weight_OPT = [ALG_bGaussAWeig21, ALG_rGaussAWeig19, ALG_rRResAWeig21]
+ALGs_Sample_OPT = [ALG_rLapPGrad15, ALG_rExpPWeig20, ALG_rGaussPGrad22]

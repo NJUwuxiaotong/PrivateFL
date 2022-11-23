@@ -16,8 +16,8 @@ from pub_lib.pub_libs import bound, random_value_with_probs
 
 
 class FedAvgClient(object):
-    def __init__(self, sys_setup, model_type, data_loader, data_info, example_shape,
-                 class_no, loss_fn, privacy_budget, training_no,
+    def __init__(self, sys_setup, model_type, data_loader, data_info,
+                 example_shape, class_no, loss_fn, privacy_budget, training_no,
                  perturb_mechanism):
         self.sys_setup = sys_setup
         # epoch_no=10, lr=0.001
@@ -51,6 +51,7 @@ class FedAvgClient(object):
         self.local_model.to(**self.sys_setup)
         self.get_model_shape()
 
+        """
         if self.perturb_mechanism == consts.NO_PERTURB:
             return self.training_model_without_noise(
                 epoch_no, lr, weight_decay)
@@ -61,6 +62,96 @@ class FedAvgClient(object):
             return self.train_model_with_fedsel(global_model, 10, 10, 10)
         elif self.perturb_mechanism == consts.G_GAUSSIAN_PERTURB:
             return None
+        """
+
+        if self.perturb_mechanism in consts.ALGs_Gradient_OPT:
+            self.train_model_with_gradient(epoch_no, lr)
+        elif self.perturb_mechanism in consts.ALGs_Weight_OPT:
+            self.train_model_with_weight(global_model, epoch_no, lr, weight_decay)
+        elif self.perturb_mechanism in consts.ALGs_Sample_OPT:
+            self.train_model_with_sample(global_model, epoch_no, lr, weight_decay)
+        else:
+            print("Error: Perturbation mechanism %s does not exist!"
+                  % self.perturb_mechanism)
+            exit(1)
+
+    def train_model_with_gradient(self, epoch_no, lr):
+        opt = torch.optim.SGD(self.local_model.parameters(), lr=lr)
+        for epoch in range(epoch_no):
+            batch_no = len(self.data_loader)
+            chosen_batch_index = np.random.randint(0, batch_no)
+
+            for step, (examples, labels) in enumerate(self.data_loader):
+                print(step)
+                if step != chosen_batch_index:
+                    continue
+
+                examples = examples.to(self.sys_setup["device"])
+                labels = labels.to(self.sys_setup["device"])
+                example_no = examples.shape[0]
+
+                gradients = []
+                for i in range(example_no):
+                    pred_label = self.local_model(examples[i])
+                    opt.zero_grad()
+                    loss = self.loss_fn(pred_label[0], labels[i])
+                    input_gradient = torch.autograd.grad(
+                        loss, self.local_model.parameters())
+
+                    import pdb; pdb.set_trace()
+                    # input_gradient = [grad.detach() for grad in input_gradient]
+                    gradients.append(input_gradient)
+                break
+
+            avg_gradient = deepcopy(gradients[0])
+            for i in range(batch_no - 1):
+                for name, params in self.model_shape.items():
+                     avg_gradient[name] += gradients[i+1][name]
+
+            import pdb; pdb.set_trace()
+
+
+
+
+
+
+
+    def train_model_with_rGaussAGrad16(self):
+        pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def train_model_with_weight(self, global_model, epoch_no, lr, weight_decay):
+        pass
+
+    def train_model_with_sample(self, global_model, epoch_no, lr, weight_decay):
+        pass
+
+
+
+
+
+
+
+
+
 
     def training_model_without_noise(self, epoch_no=10,
                                      lr=0.001, weight_decay=5e-4):
