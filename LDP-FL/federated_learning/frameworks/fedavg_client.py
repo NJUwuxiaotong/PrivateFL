@@ -12,7 +12,8 @@ from copy import deepcopy
 from loss import Classification
 from attack.modules import MetaMonkey
 
-from pub_lib.pub_libs import bound, random_value_with_probs
+from pub_lib.pub_libs import bound, random_value_with_probs, gradient_l2_norm, \
+    model_l2_norm
 
 
 class FedAvgClient(object):
@@ -34,6 +35,7 @@ class FedAvgClient(object):
 
         self.local_model = None
         self.model_shape = None
+        self.model_shape_name = None
         self.loss_fn = loss_fn
         self.epoch_total_loss = 0.0
 
@@ -45,8 +47,8 @@ class FedAvgClient(object):
     def get_example_by_index(self, example_id):
         return self.data_loader.dataset[example_id]
 
-    def training_model(self, global_model, epoch_no=10, lr=0.001,
-                       weight_decay=5e-4):
+    def train_model(self, global_model, epoch_no=10, lr=0.001,
+                    norm_range=0.0, weight_decay=5e-4):
         self.local_model = deepcopy(global_model)
         self.local_model.to(**self.sys_setup)
         self.get_model_shape()
@@ -63,95 +65,144 @@ class FedAvgClient(object):
         elif self.perturb_mechanism == consts.G_GAUSSIAN_PERTURB:
             return None
         """
-
-        if self.perturb_mechanism in consts.ALGs_Gradient_OPT:
-            self.train_model_with_gradient(epoch_no, lr)
+        if self.perturb_mechanism in consts.ALGs_GradMiniBatchOPT:
+            return self.train_model_with_gradient_mini_sgd(
+                epoch_no, lr, norm_range)
+        elif self.perturb_mechanism in consts.ALGs_GradBatchOPT:
+            return self.train_model_with_gradient_batch_sgd(
+                epoch_no, lr, norm_range)
         elif self.perturb_mechanism in consts.ALGs_Weight_OPT:
-            self.train_model_with_weight(global_model, epoch_no, lr, weight_decay)
+            self.train_model_with_weight(global_model, epoch_no, lr,
+                                         weight_decay)
         elif self.perturb_mechanism in consts.ALGs_Sample_OPT:
-            self.train_model_with_sample(global_model, epoch_no, lr, weight_decay)
+            self.train_model_with_sample(global_model, epoch_no, lr,
+                                         weight_decay)
         else:
             print("Error: Perturbation mechanism %s does not exist!"
                   % self.perturb_mechanism)
             exit(1)
 
-    def train_model_with_gradient(self, epoch_no, lr):
+    def train_model_with_gradient_mini_sgd(self, epoch_no, lr, norm_range):
+        opt = torch.optim.SGD(self.local_model.parameters(), lr=lr)
+        batch_no = len(self.data_loader)
+
+        for epoch in range(epoch_no):
+            chosen_batch_index = np.random.randint(0, batch_no)
+            for step, (examples, labels) in enumerate(self.data_loader):
+                if step == chosen_batch_index:
+                    examples = examples.to(self.sys_setup["device"])
+                    labels = labels.to(self.sys_setup["device"])
+                    example_no = examples.shape[0]
+
+                    gradients = []
+                    for i in range(example_no):
+                        pred_label = self.local_model(examples[i])
+                        opt.zero_grad()
+                        loss = self.loss_fn(pred_label[0], labels[i])
+                        input_gradient = torch.autograd.grad(
+                            loss, self.local_model.parameters())
+                        input_gradient = \
+                            [grad.detach() for grad in input_gradient]
+                        gradients.append(input_gradient)
+
+            updated_gradient = list()
+            for layer_gradient in gradients[0]:
+                updated_gradient.append(torch.zeros_like(layer_gradient))
+
+            gradients_l2_norm = list()
+            for gradient in gradients:
+                gradients_l2_norm.append(gradient_l2_norm(gradient))
+
+            for i in range(example_no):
+                for j in range(len(updated_gradient)):
+                    if self.perturb_mechanism == consts.ALG_NoGradMiniBatch:
+                        updated_gradient[j] += gradients[i][j]
+                    else:
+                        updated_gradient[j] = \
+                            updated_gradient[j] + \
+                            gradients[i][j] * \
+                            min(1, norm_range/gradients_l2_norm[i])
+
+                    if self.perturb_mechanism == consts.ALG_rGaussAGrad16:
+                        updated_gradient[j] += 0.0
+                    elif self.perturb_mechanism == consts.ALG_eGaussAGrad19:
+                        updated_gradient[j] += 0.0
+                    elif self.perturb_mechanism == consts.ALG_eGaussAGrad22:
+                        updated_gradient[j] += 0.0
+                    else:  # consts.ALG_rGaussPGrad22
+                        updated_gradient[j] += 0.0
+
+            for i in range(len(updated_gradient)):
+                updated_gradient[i] /= example_no
+
+            local_model_params = self.local_model.state_dict()
+            with torch.no_grad():
+                for i in range(len(self.model_shape_name)):
+                    local_model_params[self.model_shape_name[i]] -= \
+                        lr * updated_gradient[i]
+                self.local_model.load_state_dict(local_model_params)
+        return self.local_model.state_dict(), self.example_no
+
+    def train_model_with_gradient_batch_sgd(self, epoch_no, lr, norm_range):
         opt = torch.optim.SGD(self.local_model.parameters(), lr=lr)
         for epoch in range(epoch_no):
-            batch_no = len(self.data_loader)
-            chosen_batch_index = np.random.randint(0, batch_no)
-
+            gradients = []
             for step, (examples, labels) in enumerate(self.data_loader):
-                print(step)
-                if step != chosen_batch_index:
-                    continue
-
                 examples = examples.to(self.sys_setup["device"])
                 labels = labels.to(self.sys_setup["device"])
-                example_no = examples.shape[0]
+                pred_labels = self.local_model(examples)
+                opt.zero_grad()
+                loss = self.loss_fn(pred_labels, labels)
+                input_gradient = torch.autograd.grad(
+                    loss, self.local_model.parameters())
+                input_gradient = \
+                    [grad.detach() for grad in input_gradient]
+                gradients.append(input_gradient)
 
-                gradients = []
-                for i in range(example_no):
-                    pred_label = self.local_model(examples[i])
-                    opt.zero_grad()
-                    loss = self.loss_fn(pred_label[0], labels[i])
-                    input_gradient = torch.autograd.grad(
-                        loss, self.local_model.parameters())
+            updated_gradient = list()
+            for layer_gradient in gradients[0]:
+                updated_gradient.append(torch.zeros_like(layer_gradient))
 
-                    import pdb; pdb.set_trace()
-                    # input_gradient = [grad.detach() for grad in input_gradient]
-                    gradients.append(input_gradient)
-                break
+            gradients_l2_norm = list()
+            for gradient in gradients:
+                gradients_l2_norm.append(gradient_l2_norm(gradient))
 
-            avg_gradient = deepcopy(gradients[0])
-            for i in range(batch_no - 1):
-                for name, params in self.model_shape.items():
-                     avg_gradient[name] += gradients[i+1][name]
+            for i in range(len(self.data_loader)):
+                for j in range(len(updated_gradient)):
+                    if self.perturb_mechanism == consts.ALG_NoGradBatch:
+                        updated_gradient[j] += gradients[i][j]
+                    else:
+                        updated_gradient[j] = \
+                            updated_gradient[j] + \
+                            gradients[i][j] * \
+                            min(1, norm_range/gradients_l2_norm[i]) + 0.0
 
-            import pdb; pdb.set_trace()
+            for i in range(len(updated_gradient)):
+                updated_gradient[i] /= len(self.data_loader)
 
-
-
-
-
-
-
-    def train_model_with_rGaussAGrad16(self):
-        pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            local_model_params = self.local_model.state_dict()
+            with torch.no_grad():
+                for i in range(len(self.model_shape_name)):
+                    local_model_params[self.model_shape_name[i]] -= \
+                        lr * updated_gradient[i]
+                self.local_model.load_state_dict(local_model_params)
+        return self.local_model.state_dict(), self.data_info.example_no
 
     def train_model_with_weight(self, global_model, epoch_no, lr, weight_decay):
-        pass
+        if self.perturb_mechanism == consts.ALG_bGaussAWeig21:
+            pass
+        elif self.perturb_mechanism == consts.ALG_rGaussAWeig19:
+            pass
+        else: # consts.ALG_rRResAWeig21
+            pass
 
     def train_model_with_sample(self, global_model, epoch_no, lr, weight_decay):
-        pass
-
-
-
-
-
-
-
-
-
+        if self.perturb_mechanism == consts.ALG_rLapPGrad15:
+            pass
+        elif self.perturb_mechanism == consts.ALG_rExpPWeig20:
+            pass
+        else: # consts.ALG_rGaussPGrad22:
+            pass
 
     def training_model_without_noise(self, epoch_no=10,
                                      lr=0.001, weight_decay=5e-4):
@@ -316,11 +367,7 @@ class FedAvgClient(object):
                 print("Error: !")
                 exit(1)
 
-    def model_l2_norm(self, model_params):
-        l2_norm = 0.0
-        for name, params in model_params.items():
-            l2_norm += torch.norm(model_params[name], p=2)
-        return l2_norm
+
 
     def selected_gradient_pos(self):
         chosen_layer = np.random.randint(0, len(self.model_shape))
@@ -346,9 +393,11 @@ class FedAvgClient(object):
             exit(1)
         else:
             self.model_shape = dict()
+            self.model_shape_name = list()
             origin_model = MetaMonkey(self.local_model)
             for name, param in origin_model.parameters.items():
                 self.model_shape[name] = param.shape
+                self.model_shape_name.append(name)
 
     def add_constant_to_value(self, local_model, value):
         origin_model = MetaMonkey(local_model)

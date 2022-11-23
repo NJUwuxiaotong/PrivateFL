@@ -236,10 +236,12 @@ class FedAvgServer(object):
             for chosen_client_index in chosen_clients:
                 # train the local model
                 local_model_param, example_no = \
-                    fl_clients[chosen_client_index].training_model(
+                    fl_clients[chosen_client_index].train_model(
                         self.global_model, self.epoch_no, self.lr)
                 client_model_params.append(local_model_param)
                 training_example_no_set.append(example_no)
+                # print("Info: Round %s - Client %s finish training." %
+                #       (client_order, chosen_client_index))
 
             # launch inverting gradient attack
             if client_order in self.attack_rounds and is_attack:

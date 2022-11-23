@@ -1,5 +1,5 @@
 # related-data constants
-DATASET_ROOT_DIR = "/home/wuxiaotong/workspace/datasets"
+DATASET_ROOT_DIR = "C:\\workspace\\workspace\\datasets"
 
 DATASET_ADULT = "ADULT"
 DATASET_BIRD = "BIRD"
@@ -77,9 +77,12 @@ G_LAPLACE_PERTURB = "g_laplace"
 G_GAUSSIAN_PERTURB = "g_gaussian"
 FED_SEL = "fed_sel"
 
+ALG_NoGradMiniBatch = "ALG_NoGaussMiniBatch"
 ALG_rGaussAGrad16 = "ALG_rGaussAGrad16"
 ALG_eGaussAGrad19 = "ALG_eGaussAGrad19"
 ALG_eGaussAGrad22 = "ALG_eGaussAGrad22"
+
+ALG_NoGradBatch = "ALG_NoGradBatch"
 ALG_rGaussAGrad18 = "ALG_rGaussAGrad18"
 
 ALG_bGaussAWeig21 = "ALG_bGaussAWeig21"
@@ -90,7 +93,10 @@ ALG_rLapPGrad15 = "ALG_rLapPGrad15"
 ALG_rExpPWeig20 = "ALG_rExpPWeig20"
 ALG_rGaussPGrad22 = "ALG_rGaussPGrad22"
 
-ALGs_Gradient_OPT = [ALG_rGaussAGrad16, ALG_eGaussAGrad19, ALG_eGaussAGrad22,
-                     ALG_rGaussAGrad18, "gradient_without_pert"]
+ALGs_GradMiniBatchOPT = [ALG_rGaussAGrad16, ALG_eGaussAGrad19,
+                         ALG_eGaussAGrad22, ALG_rGaussAGrad18,
+                         ALG_NoGradMiniBatch]
+ALGs_GradBatchOPT = [ALG_NoGradBatch, ALG_rGaussAGrad18]
+
 ALGs_Weight_OPT = [ALG_bGaussAWeig21, ALG_rGaussAWeig19, ALG_rRResAWeig21]
 ALGs_Sample_OPT = [ALG_rLapPGrad15, ALG_rExpPWeig20, ALG_rGaussPGrad22]

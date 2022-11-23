@@ -57,3 +57,17 @@ def random_value_with_probs(probs, num=1, is_duplicate=False):
             chosen_indexes.append(chosen_index)
             chosen_indexes_no += 1
     return chosen_indexes
+
+
+def model_l2_norm(model_params):
+    l2_norm = 0.0
+    for name, params in model_params.items():
+        l2_norm += torch.norm(model_params[name], p=2)
+    return l2_norm
+
+
+def gradient_l2_norm(model_gradient):
+    l2_norm = 0.0
+    for gradient in model_gradient:
+        l2_norm += torch.norm(gradient, p=2)
+    return l2_norm
