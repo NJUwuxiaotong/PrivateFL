@@ -19,7 +19,7 @@ from pub_lib.pub_libs import bound, random_value_with_probs, gradient_l2_norm, \
 class FedAvgClient(object):
     def __init__(self, sys_setup, model_type, data_loader, data_info,
                  example_shape, class_no, loss_fn, privacy_budget, training_no,
-                 perturb_mechanism):
+                 perturb_mechanism, noise_dist, broken_prob):
         self.sys_setup = sys_setup
         # epoch_no=10, lr=0.001
         self.model_type = model_type
@@ -41,48 +41,41 @@ class FedAvgClient(object):
 
         self.perturb_mechanism = perturb_mechanism
         self.privacy_budget = privacy_budget
+        self.broken_prob = broken_prob
         self.training_no = training_no
         self.single_privacy_cost = (privacy_budget + 0.0) / self.training_no
+        self.noise_dist = noise_dist
 
     def get_example_by_index(self, example_id):
         return self.data_loader.dataset[example_id]
 
     def train_model(self, global_model, epoch_no=10, lr=0.001,
-                    norm_range=0.0, weight_decay=5e-4):
+                    clip_norm=None):
         self.local_model = deepcopy(global_model)
         self.local_model.to(**self.sys_setup)
         self.get_model_shape()
 
-        """
-        if self.perturb_mechanism == consts.NO_PERTURB:
-            return self.training_model_without_noise(
-                epoch_no, lr, weight_decay)
-        elif self.perturb_mechanism == consts.G_LAPLACE_PERTURB:
-            return self.training_model_with_g_Lap_perturb(
-                epoch_no, lr, weight_decay)
-        elif self.perturb_mechanism == consts.FED_SEL:
-            return self.train_model_with_fedsel(global_model, 10, 10, 10)
-        elif self.perturb_mechanism == consts.G_GAUSSIAN_PERTURB:
-            return None
-        """
-        if self.perturb_mechanism in consts.ALGs_GradMiniBatchOPT:
-            return self.train_model_with_gradient_mini_sgd(
-                epoch_no, lr, norm_range)
+        if self.perturb_mechanism in consts.ALGs_GradSGD_OPT:
+            return self.train_model_with_gradient_sgd(
+                epoch_no, lr, clip_norm, None, self.privacy_budget,
+                self.broken_prob)
         elif self.perturb_mechanism in consts.ALGs_GradBatchOPT:
-            return self.train_model_with_gradient_batch_sgd(
-                epoch_no, lr, norm_range)
+            return self.train_model_with_gradient_mini_batch_gd(
+                epoch_no, lr, clip_norm)
         elif self.perturb_mechanism in consts.ALGs_Weight_OPT:
-            self.train_model_with_weight(global_model, epoch_no, lr,
-                                         weight_decay)
+            if self.perturb_mechanism == consts.ALG_rRResAWeig21:
+                self.train_model_with_weight(epoch_no, lr, )
+            else:
+                self.train_model_with_weight(epoch_no, lr, )
         elif self.perturb_mechanism in consts.ALGs_Sample_OPT:
-            self.train_model_with_sample(global_model, epoch_no, lr,
-                                         weight_decay)
+            self.train_model_with_sample(epoch_no, lr)
         else:
             print("Error: Perturbation mechanism %s does not exist!"
                   % self.perturb_mechanism)
             exit(1)
 
-    def train_model_with_gradient_mini_sgd(self, epoch_no, lr, norm_range):
+    def train_model_with_gradient_sgd(self, epoch_no, lr, norm_bound, sigma,
+                                      epsilon, delta):
         opt = torch.optim.SGD(self.local_model.parameters(), lr=lr)
         batch_no = len(self.data_loader)
 
@@ -113,24 +106,41 @@ class FedAvgClient(object):
             for gradient in gradients:
                 gradients_l2_norm.append(gradient_l2_norm(gradient))
 
+
+            # generate the noise
+            max_dimen = 0
+            for layer_name, layer_shape in self.model_shape.items():
+                if max_dimen < layer_shape[-1]:
+                    max_dimen = layer_shape[-1]
+
+            if sigma is None:
+                if self.perturb_mechanism == consts.ALG_rGaussAGrad16:
+                    # Influence: (epsilon, delta) --> sigma
+                    # Direct sigma: (1, 2, 3, ...)
+                    sigma = math.sqrt(2 * math.log(1.25 / delta)) / epsilon
+                    sigma *= norm_bound
+                elif self.perturb_mechanism == consts.ALG_eGaussAGrad19:
+                    updated_gradient[j] += 0.0
+                elif self.perturb_mechanism == consts.ALG_eGaussAGrad22:
+                    updated_gradient[j] += 0.0
+                elif self.perturb_mechanism == consts.ALG_rGaussPGrad22:
+                    updated_gradient[j] += 0.0
+
+            noise = self.generate_noise(consts.GAUSSIAN_DIST, sigma, max_dimen)
+            noise = torch.tensor(noise, device=self.sys_setup["device"])
+
             for i in range(example_no):
                 for j in range(len(updated_gradient)):
-                    if self.perturb_mechanism == consts.ALG_NoGradMiniBatch:
+                    if self.perturb_mechanism == consts.ALG_NoGradSGD:
                         updated_gradient[j] += gradients[i][j]
                     else:
+                        # norm bound: 1, 2, 3, 4, 5, 6, 7, ...
                         updated_gradient[j] = \
                             updated_gradient[j] + \
                             gradients[i][j] * \
-                            min(1, norm_range/gradients_l2_norm[i])
-
-                    if self.perturb_mechanism == consts.ALG_rGaussAGrad16:
-                        updated_gradient[j] += 0.0
-                    elif self.perturb_mechanism == consts.ALG_eGaussAGrad19:
-                        updated_gradient[j] += 0.0
-                    elif self.perturb_mechanism == consts.ALG_eGaussAGrad22:
-                        updated_gradient[j] += 0.0
-                    else:  # consts.ALG_rGaussPGrad22
-                        updated_gradient[j] += 0.0
+                            min(1, norm_bound / gradients_l2_norm[i])
+                        vector_shape = updated_gradient[j].shape
+                        updated_gradient[j] += noise[:vector_shape[-1]]
 
             for i in range(len(updated_gradient)):
                 updated_gradient[i] /= example_no
@@ -143,7 +153,7 @@ class FedAvgClient(object):
                 self.local_model.load_state_dict(local_model_params)
         return self.local_model.state_dict(), self.example_no
 
-    def train_model_with_gradient_batch_sgd(self, epoch_no, lr, norm_range):
+    def train_model_with_gradient_mini_batch_gd(self, epoch_no, lr, norm_range):
         opt = torch.optim.SGD(self.local_model.parameters(), lr=lr)
         for epoch in range(epoch_no):
             gradients = []
@@ -169,7 +179,7 @@ class FedAvgClient(object):
 
             for i in range(len(self.data_loader)):
                 for j in range(len(updated_gradient)):
-                    if self.perturb_mechanism == consts.ALG_NoGradBatch:
+                    if self.perturb_mechanism == consts.ALG_No_GradBatch:
                         updated_gradient[j] += gradients[i][j]
                     else:
                         updated_gradient[j] = \
@@ -188,60 +198,96 @@ class FedAvgClient(object):
                 self.local_model.load_state_dict(local_model_params)
         return self.local_model.state_dict(), self.data_info.example_no
 
-    def train_model_with_weight(self, global_model, epoch_no, lr, weight_decay):
-        if self.perturb_mechanism == consts.ALG_bGaussAWeig21:
-            pass
-        elif self.perturb_mechanism == consts.ALG_rGaussAWeig19:
-            pass
-        else: # consts.ALG_rRResAWeig21
-            pass
+    def train_model_with_weight(self, epoch_no, lr, center_radius_stats=None):
+        opt = torch.optim.SGD(self.local_model.parameters(), lr=lr)
+        for epoch in range(epoch_no):
+            for step, (examples, labels) in enumerate(self.data_loader):
+                examples = examples.to(self.sys_setup["device"])
+                labels = labels.to(self.sys_setup["device"])
+                pred_labels = self.local_model(examples)
+                opt.zero_grad()
+                loss = self.loss_fn(pred_labels, labels)
+                loss.backward()
+                opt.step()
 
-    def train_model_with_sample(self, global_model, epoch_no, lr, weight_decay):
+                if self.perturb_mechanism == consts.ALG_bGaussAWeig21:
+                    with torch.no_grad():
+                        updated_params = self.add_dynamic_noise_to_model(
+                            self.local_model, consts.GAUSSIAN_DIST, 0.5)
+                        self.local_model.load_state_dict(updated_params)
+
+        if self.perturb_mechanism == consts.ALG_rGaussAWeig19:
+                if self.noise_dist == consts.LAPLACE_DIST:
+                    updated_params = self.add_dynamic_noise_to_model(
+                        self.local_model, consts.LAPLACE_DIST, 1)
+                elif self.noise_dist == consts.GAUSSIAN_DIST:
+                    updated_params = self.add_dynamic_noise_to_model(
+                        self.local_model, consts.GAUSSIAN_DIST, 1)
+                else:
+                    print("Error: No distribution %s" % self.noise_dist)
+                    exit(1)
+                with torch.no_grad():
+                    self.local_model.load_state_dict(updated_params)
+
+        if self.perturb_mechanism == consts.ALG_rRResAWeig21:
+            if center_radius_stats is None:
+                print("Error: Perturb Mechanism %s needs central and radius "
+                      "info!" % self.perturb_mechanism)
+                exit(1)
+
+                updated_params = self.add_bernoulli_noise_to_model(
+                    self.local_model, center_radius_stats)
+                with torch.no_grad():
+                    self.local_model.load_state_dict(updated_params)
+
+        return self.local_model.state_dict(), self.data_info.example_no
+
+    def train_model_with_sample(self, epoch_no, lr):
+        init_model_params = copy.deepcopy(self.local_model.state_dict())
+        updated_model_params, example_no = \
+            self.train_model_with_gradient_sgd(epoch_no, lr, None,
+                                               consts.ALG_NoGradSGD)
+        updated_gradients = self.compute_updated_parameters(
+            init_model_params, updated_model_params)
+
         if self.perturb_mechanism == consts.ALG_rLapPGrad15:
-            pass
+            noise_gradients = self.train_model_with_rLapPGrad15(
+                updated_gradients, 1, 1, 100)
         elif self.perturb_mechanism == consts.ALG_rExpPWeig20:
-            pass
+            self.train_model_with_rExpPWeig20(updated_gradients, 1, 1, 30)
         else: # consts.ALG_rGaussPGrad22:
-            pass
+            self.train_model_with_rGaussPGrad22(updated_gradients)
 
-    def training_model_without_noise(self, epoch_no=10,
-                                     lr=0.001, weight_decay=5e-4):
-        opt = torch.optim.SGD(self.local_model.parameters(), lr=lr)
-        for epoch in range(epoch_no):
-            for step, (examples, labels) in enumerate(self.data_loader):
-                examples = examples.to(self.sys_setup["device"])
-                labels = labels.to(self.sys_setup["device"])
-                pred_labels = self.local_model(examples)
-                opt.zero_grad()
-                loss = self.loss_fn(pred_labels, labels)
-                loss.backward()
-                opt.step()
-        return self.local_model.state_dict(), self.data_info.example_no
+    def train_model_with_rLapPGrad15(self, gradients, threshold, gradient_range,
+                                     total_gradient_no):
+        pre_privacy_cost = self.single_privacy_cost * 8.0 / 9
+        perturb_privacy_cost = self.single_privacy_cost * 1.0 / 9
+        noise1 = np.random.laplace(
+            2.0 * total_gradient_no * 1 / pre_privacy_cost)
+        upload_gradients = list()
 
-    def training_model_with_g_Lap_perturb(self, epoch_no=10, lr=0.001,
-                                          weight_decay=5e-4):
-        opt = torch.optim.SGD(self.local_model.parameters(), lr=lr)
-        privacy_cost = \
-            self.single_privacy_cost / epoch_no / len(self.data_loader)
-        for epoch in range(epoch_no):
-            for step, (examples, labels) in enumerate(self.data_loader):
-                examples = examples.to(self.sys_setup["device"])
-                labels = labels.to(self.sys_setup["device"])
-                pred_labels = self.local_model(examples)
-                opt.zero_grad()
-                loss = self.loss_fn(pred_labels, labels)
-                loss.backward()
-                opt.step()
+        gradient_no = 0
+        while gradient_no <= total_gradient_no:
+            chosen_layer_name, chosen_pos = self.selected_gradient_pos()
+            if len(chosen_pos) == 1:
+                chosen_gradient = gradients[chosen_layer_name][chosen_pos[0]]
+            else:
+                chosen_gradient = \
+                    gradients[chosen_layer_name][chosen_pos[0]][chosen_pos[1]]
+            noise2 = np.random.laplace(
+                2 * 2 * total_gradient_no * 1 / pre_privacy_cost)
+            if np.abs(bound(chosen_gradient, gradient_range)) + noise2 \
+                    >= threshold + noise1:
+                noise = np.random.laplace(
+                    2 * total_gradient_no * 1 / perturb_privacy_cost)
+                upload_gradients.append(
+                    (chosen_layer_name, chosen_pos,
+                     bound(chosen_gradient + noise, gradient_range) ))
+                gradient_no = gradient_no + 1
+        return upload_gradients
 
-                noise_params = self.add_dynamic_value(
-                    self.local_model, consts.LAPLACE_DIST, 1.0/privacy_cost)
-                self.local_model.load_state_dict(noise_params)
-
-        return self.local_model.state_dict(), self.data_info.example_no
-
-    def train_model_with_fedsel(self, gradients, threshold, gradient_range,
-                               total_dimen_no, epoch_no=10, lr=0.001,
-                               weight_decay=5e-4):
+    def train_model_with_rExpPWeig20(self, gradients, threshold, gradient_range,
+                                     total_dimen):
         privacy_cost1 = 1.0 / 2 * self.single_privacy_cost
         privacy_cost2 = self.single_privacy_cost - privacy_cost1
 
@@ -273,14 +319,61 @@ class FedAvgClient(object):
         chosen_dimens_index = random_value_with_probs(dimen_probs)
         return chosen_dimens_index
 
-    def train_model_with_ldp_fl(self, center_radius_of_weights):
+    def train_model_with_rGaussPGrad22(self, gradients, threshold,
+                                       gradient_range, total_gradient_no,
+                                       top_k):
+        for name, params in gradients.items():
+            if len(params) == 1:
+                values = gradients[name][params]
+                value_top_k = values.sort().values[top_k]
+                gradients[name][ values < value_top_k ] = 0
+            elif len(params) == 2:
+                for i in range(len(params[0])):
+                    values = gradients[name][i]
+                    value_top_k = values.sort().values[top_k]
+                    gradients[name][values < value_top_k] = 0
+            else:
+                print("Error: !")
+                exit(1)
+        return gradients
+
+    def add_dynamic_noise_to_model(self, local_model, noise_dist,
+                                   lap_sigma=None, gauss_sigma=None):
+        origin_model = MetaMonkey(local_model)
+        updated_parames = list()
+        with torch.no_grad():
+            for name, param in origin_model.parameters.items():
+                param_shape = param.shape
+                new_tensor = copy.deepcopy(param)
+
+                if len(param_shape) == 1:
+                    noises = self.generate_noise(
+                        noise_dist, lap_sigma, param_shape[0])
+                    noises = torch.tensor(
+                        noises, device=self.sys_setup["device"])
+                elif len(param_shape) == 2:
+                    noises = self.generate_noise(
+                        noise_dist, lap_sigma, param_shape[0] * param_shape[1])
+                    noises = torch.tensor(
+                        noises, device=self.sys_setup["device"])\
+                        .reshape((param_shape[0], param_shape[1]))
+                else:
+                    print("exceed")
+                    exit(1)
+
+                new_tensor = new_tensor + noises
+                updated_parames.append((name, new_tensor))
+        return collections.OrderedDict(updated_parames)
+
+    def add_bernoulli_noise_to_model(self, local_model,
+                                     center_radius_of_weights):
         """
         :param range1: the centers of the range of every layer
         :param range2: the radius of the range of every layer
         :return:
         """
         # train the model on the local data
-        origin_model = MetaMonkey(self.local_model)
+        origin_model = MetaMonkey(local_model)
         model_params = copy.deepcopy(origin_model.state_dict())
 
         for name, params in self.model_shape.items():
@@ -303,7 +396,7 @@ class FedAvgClient(object):
             else:
                 print("Error: !")
                 exit(1)
-            self.local_model.load_state_dict(model_params)
+        return model_params
 
     def bernoulli_noise(self, weight, privacy_budget, center_v,
                                  radius_v):
@@ -320,54 +413,54 @@ class FedAvgClient(object):
                    radius_v * (math.exp(privacy_budget) + 1) / \
                    (math.exp(privacy_budget) - 1)
 
-    def train_model_with_dssgd(self, gradients, threshold, gradient_range,
-                               total_gradient_no, epoch_no=10, lr=0.001,
-                               weight_decay=5e-4):
-        pre_privacy_cost = self.single_privacy_cost * 8.0 / 9
-        perturb_privacy_cost = self.single_privacy_cost * 1.0 / 9
-        noise1 = np.random.laplace(
-            2.0 * total_gradient_no * 1 / pre_privacy_cost)
-        upload_gradients = list()
+    def compute_updated_parameters(self, initial_parameters,
+                                   updated_parameters):
+        # patched_model = MetaMonkey(initial_parameters)
+        # patched_model_origin = deepcopy(patched_model)
+        # patched_model.parameters = collections.OrderedDict(
+        #    (name, (param - param_origin)/local_lr)
+        #     for ((name, param), (name_origin, param_origin))
+        #     in zip(updated_parameters.items(), initial_parameters.items()))
+        updated_values = [(name, (param - param_origin))
+                          for ((name, param), (name_origin, param_origin))
+                          in zip(updated_parameters.items(),
+                                 initial_parameters.items())]
+        return updated_values
 
-        gradient_no = 0
-        while gradient_no <= total_gradient_no:
-            chosen_layer_name, chosen_pos = self.selected_gradient_pos()
-            if len(chosen_pos) == 1:
-                chosen_gradient = gradients[chosen_layer_name][chosen_pos[0]]
-            else:
-                chosen_gradient = \
-                    gradients[chosen_layer_name][chosen_pos[0]][chosen_pos[1]]
-            noise2 = np.random.laplace(
-                2 * 2 * total_gradient_no * 1 / pre_privacy_cost)
-            if np.abs(bound(chosen_gradient, gradient_range)) + noise2 \
-                    >= threshold + noise1:
-                noise = np.random.laplace(
-                    2 * total_gradient_no * 1 / perturb_privacy_cost)
-                upload_gradients.append(
-                    (chosen_layer_name, chosen_pos,
-                     bound(chosen_gradient + noise, gradient_range) ))
-                gradient_no = gradient_no + 1
-        return upload_gradients
+    def training_model_without_noise(self, epoch_no=10,
+                                     lr=0.001, weight_decay=5e-4):
+        opt = torch.optim.SGD(self.local_model.parameters(), lr=lr)
+        for epoch in range(epoch_no):
+            for step, (examples, labels) in enumerate(self.data_loader):
+                examples = examples.to(self.sys_setup["device"])
+                labels = labels.to(self.sys_setup["device"])
+                pred_labels = self.local_model(examples)
+                opt.zero_grad()
+                loss = self.loss_fn(pred_labels, labels)
+                loss.backward()
+                opt.step()
+        return self.local_model.state_dict(), self.data_info.example_no
 
-    def train_model_Local_update(self, gradients, threshold, gradient_range,
-                               total_gradient_no, top_k, epoch_no=10, lr=0.001,
-                               weight_decay=5e-4):
-        # model gradient
-        for name, params in gradients.items():
-            if len(params) == 1:
-                values = gradients[name][params]
-                value_top_k = values.sort().values[top_k]
-                gradients[name][ values < value_top_k ] = 0
-            elif len(params) == 2:
-                for i in range(len(params[0])):
-                    values = gradients[name][i]
-                    value_top_k = values.sort().values[top_k]
-                    gradients[name][values < value_top_k] = 0
-            else:
-                print("Error: !")
-                exit(1)
+    def training_model_with_g_Lap_perturb(self, epoch_no=10, lr=0.001,
+                                          weight_decay=5e-4):
+        opt = torch.optim.SGD(self.local_model.parameters(), lr=lr)
+        privacy_cost = \
+            self.single_privacy_cost / epoch_no / len(self.data_loader)
+        for epoch in range(epoch_no):
+            for step, (examples, labels) in enumerate(self.data_loader):
+                examples = examples.to(self.sys_setup["device"])
+                labels = labels.to(self.sys_setup["device"])
+                pred_labels = self.local_model(examples)
+                opt.zero_grad()
+                loss = self.loss_fn(pred_labels, labels)
+                loss.backward()
+                opt.step()
 
+                noise_params = self.add_dynamic_noise_to_model(
+                    self.local_model, consts.LAPLACE_DIST, 1.0/privacy_cost)
+                self.local_model.load_state_dict(noise_params)
 
+        return self.local_model.state_dict(), self.data_info.example_no
 
     def selected_gradient_pos(self):
         chosen_layer = np.random.randint(0, len(self.model_shape))
@@ -406,34 +499,6 @@ class FedAvgClient(object):
                 (name, param + value)
                 for (name, param) in origin_model.parameters.items())
         return updated_params
-
-    def add_dynamic_value(self, local_model, noise_dist, lap_sigma=None,
-                          gauss_sigma=None):
-        origin_model = MetaMonkey(local_model)
-        updated_parames = list()
-        with torch.no_grad():
-            for name, param in origin_model.parameters.items():
-                param_shape = param.shape
-                new_tensor = copy.deepcopy(param)
-
-                if len(param_shape) == 1:
-                    noises = self.generate_noise(
-                        noise_dist, lap_sigma, param_shape[0])
-                    noises = torch.tensor(
-                        noises, device=self.sys_setup["device"])
-                elif len(param_shape) == 2:
-                    noises = self.generate_noise(
-                        noise_dist, lap_sigma, param_shape[0] * param_shape[1])
-                    noises = torch.tensor(
-                        noises, device=self.sys_setup["device"])\
-                        .reshape((param_shape[0], param_shape[1]))
-                else:
-                    print("exceed")
-                    exit(1)
-
-                new_tensor = new_tensor + noises
-                updated_parames.append((name, new_tensor))
-        return collections.OrderedDict(updated_parames)
 
     def generate_noise(self, noise_dist, lap_sigma, noise_no):
         if noise_dist == consts.LAPLACE_DIST:
@@ -477,14 +542,3 @@ class FedAvgClient(object):
             loss.backward()
             opt.step()
         return local_model.state_dict()
-
-    def compute_updated_parameters(self, global_model, updated_parameters,
-                                   local_lr):
-        patched_model = MetaMonkey(global_model)
-        patched_model_origin = deepcopy(patched_model)
-        patched_model.parameters = collections.OrderedDict(
-            (name, (param - param_origin)/local_lr)
-            for ((name, param), (name_origin, param_origin))
-            in zip(patched_model_origin.parameters.items(),
-                   updated_parameters.items()))
-        return list(patched_model.parameters.values())

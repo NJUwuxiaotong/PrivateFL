@@ -237,7 +237,8 @@ class FedAvgServer(object):
                 # train the local model
                 local_model_param, example_no = \
                     fl_clients[chosen_client_index].train_model(
-                        self.global_model, self.epoch_no, self.lr)
+                        self.global_model, self.epoch_no, self.lr,
+                        clip_norm=self.sys_args.clip_norm)
                 client_model_params.append(local_model_param)
                 training_example_no_set.append(example_no)
                 # print("Info: Round %s - Client %s finish training." %

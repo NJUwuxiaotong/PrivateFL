@@ -63,7 +63,9 @@ if __name__ == "__main__":
                                  client_train_info.example_shape,
                                  train_info.class_no, loss_fn,
                                  sys_args.privacy_budget, client_training_no,
-                                 sys_args.perturb_mechanism)
+                                 sys_args.perturb_mechanism,
+                                 sys_args.noise_dist,
+                                 sys_args.broken_probability)
         fl_clients.append(fl_client)
 
     # dispatch data to the clients

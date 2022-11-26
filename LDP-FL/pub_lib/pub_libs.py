@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 import torch
@@ -69,5 +70,23 @@ def model_l2_norm(model_params):
 def gradient_l2_norm(model_gradient):
     l2_norm = 0.0
     for gradient in model_gradient:
-        l2_norm += torch.norm(gradient, p=2)
+        layer_l2_norm = torch.norm(gradient, p=2)
+        l2_norm += layer_l2_norm * layer_l2_norm
+    l2_norm = math.sqrt(l2_norm)
     return l2_norm
+
+
+"""
+import matplotlib.pyplot as plt
+
+epsilon = 4
+delta = 0.01
+z = math.sqrt(2*math.log(1.25/delta))/epsilon
+
+x = np.random.normal(0, z, 10000)
+x = x[x<0.5]
+x = x[x>-0.5]
+
+plt.hist(x, bins=10)
+plt.show()
+"""

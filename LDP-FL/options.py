@@ -20,8 +20,15 @@ def options():
                         help="whether the dataset is balanced")
     parser.add_argument("--privacy_budget", default=100, type=float,
                         help="privacy budget of each client")
-    parser.add_argument("--perturb_mechanism", default="ALG_rGaussAGrad16", type=str,
+    parser.add_argument("--broken_probability", default=0.05, type=float,
+                        help="broken probability for gaussian mechanism")
+    parser.add_argument("--perturb_mechanism", default="ALG_rGaussAGrad16",
+                        type=str,
                         help="which perturbation mechanism executed by clients")
+    parser.add_argument("--noise_dist", default="Lap", type=str,
+                        help="which distribution the noise is drawn from")
+    parser.add_argument("--clip_norm", default=6, type=float,
+                        help="clipping norm applied to gaussian mechanism")
 
     # dataset information
     parser.add_argument('--dataset', default='mnist', type=str)
@@ -29,16 +36,16 @@ def options():
     # model training information
     parser.add_argument('--model_name', default='mnist mlp', type=str,
                         help='Vision model.')
-    parser.add_argument("--round_no", default=200, type=int,
+    parser.add_argument("--round_no", default=2000, type=int,
                         help='the number of round of global model')
 
     # training for clients
-    parser.add_argument('--epoch_no', default=1, type=int,
+    parser.add_argument('--epoch_no', default=5, type=int,
                         help='If using a trained model, how many epochs was '
                              'it trained?')
-    parser.add_argument('--batch_size', default=50, type=int,
+    parser.add_argument('--batch_size', default=20, type=int,
                         help="the size at each batch")
-    parser.add_argument('--lr', default=0.01, type=float,
+    parser.add_argument('--lr', default=0.05, type=float,
                         help='the learning ratio in model training')
     parser.add_argument('--weight_decay', default=5e-4, type=float,
                         help='weight decay')
