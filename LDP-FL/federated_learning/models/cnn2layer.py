@@ -48,6 +48,8 @@ class CNN2Layer(nn.Module):
             nn.MaxPool2d(kernel_size=self.pool2_params["kernel_size"],
                          stride=self.pool2_params["stride"]))
 
+        self.flatt = nn.Flatten()
+
         self.dense = nn.Sequential(
             nn.Linear(self.fc_params["in_neuron"],
                       self.fc_params["out_neuron"]),
@@ -57,8 +59,11 @@ class CNN2Layer(nn.Module):
         )
 
     def forward(self, input_example):
+        input_example = input_example.reshape(
+            (-1, self.channel_no, self.row_pixel, self.column_pixel))
         conv1_out = self.conv1(input_example)
         conv2_out = self.conv2(conv1_out)
-        res = conv2_out.view(conv2_out.size(0), -1)
+        res = self.flatt(conv2_out)
+        res = res.view(res.size(0), -1)
         out = self.dense(res)
         return out

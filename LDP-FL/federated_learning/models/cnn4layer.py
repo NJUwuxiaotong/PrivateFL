@@ -89,11 +89,13 @@ class CNN4Layer(nn.Module):
         )
 
     def forward(self, input_example):
+        input_example = input_example.reshape(
+            (-1, self.channel_no, self.row_pixel, self.column_pixel))
         conv1_out = self.conv1(input_example)
         conv2_out = self.conv2(conv1_out)
         conv3_out = self.conv3(conv2_out)
         # conv4_out = self.conv4(conv3_out)
-        # res = self.flatt(conv3_out)
+        res = self.flatt(conv3_out)
         res = conv3_out.view(conv3_out.size(0), -1)
         out = self.dense(res)
         return out

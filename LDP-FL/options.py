@@ -10,35 +10,41 @@ def options():
                     'federated learning environment.')
 
     # client information:
-    parser.add_argument("--client_no", default=100, type=int,
+    parser.add_argument("--client_no", default=10, type=int,
                         help='the number of clients')
-    parser.add_argument("--client_ratio", default=0.1, type=float,
+    parser.add_argument("--client_ratio", default=0.3, type=float,
                         help='the ratio of clients of global model update')
     parser.add_argument("--is_iid", default=True, type=bool,
                         help='whether the dataset is dispatched iid')
-    parser.add_argument("--is_balanced", default=False, type=bool,
+    parser.add_argument("--is_balanced", default=True, type=bool,
                         help="whether the dataset is balanced")
-    parser.add_argument("--privacy_budget", default=100, type=float,
+    parser.add_argument("--privacy_budget", default=0.5, type=float,
                         help="privacy budget of each client")
-    parser.add_argument("--perturb_mechanism", default="ALG_rGaussAGrad16", type=str,
+    parser.add_argument("--broken_probability", default=0.001, type=float,
+                        help="broken probability for gaussian mechanism")
+    parser.add_argument("--perturb_mechanism", default="ALG_rGaussAWeig19",
+                        type=str,
                         help="which perturbation mechanism executed by clients")
+    parser.add_argument("--noise_dist", default="gaussian", type=str,
+                        help="which distribution the noise is drawn from")
+    parser.add_argument("--clip_norm", default=4, type=float,
+                        help="clipping norm applied to gaussian mechanism")
 
     # dataset information
-    parser.add_argument('--dataset', default='mnist', type=str)
-
+    parser.add_argument('--dataset', default='cifar10', type=str)
     # model training information
-    parser.add_argument('--model_name', default='mnist mlp', type=str,
+    parser.add_argument('--model_name', default='resnet18', type=str,
                         help='Vision model.')
-    parser.add_argument("--round_no", default=200, type=int,
+    parser.add_argument("--round_no", default=300, type=int,
                         help='the number of round of global model')
 
     # training for clients
-    parser.add_argument('--epoch_no', default=1, type=int,
+    parser.add_argument('--epoch_no', default=2, type=int,
                         help='If using a trained model, how many epochs was '
                              'it trained?')
     parser.add_argument('--batch_size', default=50, type=int,
                         help="the size at each batch")
-    parser.add_argument('--lr', default=0.01, type=float,
+    parser.add_argument('--lr', default=0.1, type=float,
                         help='the learning ratio in model training')
     parser.add_argument('--weight_decay', default=5e-4, type=float,
                         help='weight decay')
