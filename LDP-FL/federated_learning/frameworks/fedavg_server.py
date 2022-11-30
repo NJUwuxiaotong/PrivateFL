@@ -1,5 +1,6 @@
 import collections
 import copy
+import json
 import numpy as np
 import os
 import torch
@@ -82,7 +83,6 @@ class FedAvgServer(object):
         self.global_model.to(**self.sys_setup)
         self.get_model_shape()
         self.get_center_radius_of_model()
-
         # prepare for the attack
         self.select_attack_rounds()
 
@@ -228,21 +228,42 @@ class FedAvgServer(object):
     def train_model(self, fl_clients, is_attack=False):
         clients_order = self.get_client_order()
         client_train_no = int(self.client_no * self.client_ratio)
+        experiment_results = list()
 
         for client_order in range(self.round_no):
             client_model_params = list()
             training_example_no_set = list()
             chosen_clients = clients_order[client_order]
-            for chosen_client_index in chosen_clients:
-                # train the local model
-                local_model_param, example_no = \
-                    fl_clients[chosen_client_index].train_model(
-                        self.global_model, self.epoch_no, self.lr,
-                        clip_norm=self.sys_args.clip_norm)
-                client_model_params.append(local_model_param)
-                training_example_no_set.append(example_no)
-                # print("Info: Round %s - Client %s finish training." %
-                #       (client_order, chosen_client_index))
+
+            try:
+                for chosen_client_index in chosen_clients:
+                    local_model_param, example_no = \
+                        fl_clients[chosen_client_index].train_model(
+                            self.global_model, self.epoch_no, self.lr,
+                            clip_norm=self.sys_args.clip_norm,
+                            center_radius=self.center_radius_stats)
+                    client_model_params.append(local_model_param)
+                    training_example_no_set.append(example_no)
+                        # print("Info: Round %s - Client %s finish training." %
+                        #       (client_order, chosen_client_index))
+            except:
+                exp_details = {"perturb": self.sys_args.perturb_mechanism,
+                               "privacy budget": self.sys_args.privacy_budget,
+                               "broken probability": self.sys_args.broken_probability,
+                               "noise dist": self.sys_args.noise_dist,
+                               "epoch": self.sys_args.epoch_no,
+                               "batch size": self.sys_args.batch_size,
+                               "lr": self.sys_args.lr,
+                               "dataset": self.sys_args.dataset,
+                               "model name": self.sys_args.model_name,
+                               "clip norm": self.sys_args.clip_norm,
+                               "is iid": self.sys_args.is_iid,
+                               "is balanced": self.sys_args.is_balanced,
+                               "results": experiment_results}
+                with open(consts.EXP_RESULT_DIR, "a") as f:
+                    json.dump(exp_details, f, indent=4)
+                exit(1)
+
 
             # launch inverting gradient attack
             if client_order in self.attack_rounds and is_attack:
@@ -269,12 +290,33 @@ class FedAvgServer(object):
                     key_sum += client_data_ratio * client_model_params[k][key]
                 fed_state_dict[key] = key_sum
             self.global_model.load_state_dict(fed_state_dict)
+            # self.get_center_radius_of_model()
 
             with torch.no_grad():
                 if (client_order+1) % 5 == 0:
                     acc = self.compute_accuracy()
+                    experiment_results.append(acc.tolist())
                     print("Round %s: Accuracy %.2f%%" %
                           (client_order+1, acc * 100))
+            # except:
+            ##    print("Warn: zero is 0")
+            #    continue
+
+        exp_details = {"perturb": self.sys_args.perturb_mechanism,
+                       "privacy budget": self.sys_args.privacy_budget,
+                       "broken probability": self.sys_args.broken_probability,
+                       "noise dist": self.sys_args.noise_dist,
+                       "epoch": self.sys_args.epoch_no,
+                       "batch size": self.sys_args.batch_size,
+                       "lr": self.sys_args.lr,
+                       "dataset": self.sys_args.dataset,
+                       "model name": self.sys_args.model_name,
+                       "clip norm": self.sys_args.clip_norm,
+                       "is iid": self.sys_args.is_iid,
+                       "is balanced": self.sys_args.is_balanced,
+                       "results": experiment_results}
+        with open(consts.EXP_RESULT_DIR, "a") as f:
+            json.dump(exp_details, f, indent=4)
 
     def get_model_shape(self):
         if self.global_model is None:
@@ -291,18 +333,10 @@ class FedAvgServer(object):
         weights = copy.deepcopy(self.global_model.state_dict())
         for name, params in self.model_shape.items():
             self.center_radius_stats[name] = list()
-            if len(params) == 1:
-                self.center_radius_stats[name].append(
-                    self.get_center_radius_of_vector(weights[name]))
-            elif len(params) == 2:
-                for i in range(params[0]):
-                    self.center_radius_stats[name].append(
-                        self.get_center_radius_of_vector(weights[name][i]))
-            else:
-                print("Error: The dimensions of the model > 2!")
-                exit(1)
-        print("Info: Success to Update the center and the radius of the "
-              "weights in the model.")
+            self.center_radius_stats[name] = \
+                self.get_center_radius_of_vector(weights[name])
+        #print("Info: Success to Update the center and the radius of the "
+        #      "weights in the model.")
 
     def get_center_radius_of_vector(self, value_vector):
         """

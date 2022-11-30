@@ -1,5 +1,7 @@
 # related-data constants
 DATASET_ROOT_DIR = "/home/wuxiaotong/workspace/datasets"
+EXP_RESULT_DIR = "/home/wuxiaotong/workspace/projects/PrivateFL/" \
+                 "LDP-FL/experimental_results"
 
 DATASET_ADULT = "ADULT"
 DATASET_BIRD = "BIRD"
@@ -95,8 +97,8 @@ ALG_rExpPWeig20 = "ALG_rExpPWeig20"
 ALG_rGaussPGrad22 = "ALG_rGaussPGrad22"
 
 ALGs_GradSGD_OPT = [ALG_rGaussAGrad16, ALG_eGaussAGrad19,
-                    ALG_eGaussAGrad22, ALG_rGaussAGrad18,
-                    ALG_NoGradSGD]
+                    ALG_eGaussAGrad22, ALG_NoGradSGD]
+
 ALGs_GradBatchOPT = [ALG_No_GradBatch, ALG_rGaussAGrad18]
 
 ALGs_Weight_OPT = [ALG_bGaussAWeig21, ALG_rGaussAWeig19, ALG_rRResAWeig21,

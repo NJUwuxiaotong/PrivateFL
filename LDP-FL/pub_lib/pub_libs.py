@@ -69,11 +69,13 @@ def model_l2_norm(model_params):
 
 def gradient_l2_norm(model_gradient):
     l2_norm = 0.0
+    layers_norm = list()
     for gradient in model_gradient:
         layer_l2_norm = torch.norm(gradient, p=2)
+        layers_norm.append(layer_l2_norm)
         l2_norm += layer_l2_norm * layer_l2_norm
     l2_norm = math.sqrt(l2_norm)
-    return l2_norm
+    return l2_norm, layers_norm
 
 
 """
